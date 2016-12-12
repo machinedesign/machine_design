@@ -25,3 +25,6 @@ def build_optimizer(algo_name, algo_params, optimizers=optimizers):
 
 def get_loss(name, objectives=objectives):
     return getattr(objectives, name)
+
+def object_to_dict(obj):
+    return obj.__dict__

@@ -18,7 +18,7 @@ class CallbackList(Callback):
 
     def on_epoch_begin(self, epoch, logs={}):
         for cb in self.callbacks:
-            cb.on_epoch_start(epoch, logs)
+            cb.on_epoch_begin(epoch, logs)
 
     def on_epoch_end(self, epoch, logs={}):
         for cb in self.callbacks:
@@ -26,7 +26,7 @@ class CallbackList(Callback):
 
     def on_batch_begin(self, batch, logs={}):
         for cb in self.callbacks:
-            cb.on_batch_start(batch, logs)
+            cb.on_batch_begin(batch, logs)
 
     def on_batch_end(self, batch, logs={}):
         for cb in self.callbacks:
@@ -131,7 +131,7 @@ class TimeBudget(Callback):
         if t - self.start >= self.budget_secs:
             raise BudgetFinishedException()
 
-def build_early_stopping_callback(name, params, outdir='out'):
+def build_early_stopping_callback(name, params, outdir='out', model=None):
     if name == 'basic':
         patience_loss = params['patience_loss']
         patience = params['patience']
@@ -139,18 +139,24 @@ def build_early_stopping_callback(name, params, outdir='out'):
                                  patience=patience,
                                  verbose=1,
                                  mode='auto')
+        callback.model = model
         return callback
     elif name == 'none':
         return Dummy()
 
-def build_model_checkpoint_callback(params, model_filename='model.pkl'):
+def build_model_checkpoint_callback(params, model_filename='model.pkl', model=None):
     loss = params['loss']
     save_best_only = params['save_best_only']
-    return ModelCheckpoint(model_filename,
-                           monitor=loss,
-                           verbose=1,
-                           save_best_only=save_best_only,
-                           mode='auto' if loss else 'min')
+    callback = ModelCheckpoint(
+        model_filename,
+        monitor=loss,
+        verbose=1,
+        save_best_only=save_best_only,
+        mode='auto' if loss else 'min')
+    callback.model = model
+    return callback
 
-def build_lr_schedule_callback(name, params, print=print):
-    return LearningRateScheduler(name=name, params=params, print=print)
+def build_lr_schedule_callback(name, params, print=print, model=None):
+    callback = LearningRateScheduler(name=name, params=params, print=print)
+    callback.model = model
+    return callback

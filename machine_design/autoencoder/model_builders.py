@@ -1,5 +1,3 @@
-import sys
-import os
 import numpy as np
 
 from keras.layers import Dense
@@ -8,10 +6,8 @@ from keras.layers import Input
 from keras.layers import Reshape
 from keras.models import Model
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir)))
-from common import activation_function
-from common import fully_connected_layers
-
+from ..common import activation_function
+from ..common import fully_connected_layers
 
 def fullyconnected(params):
     input_shape = params['input_shape']

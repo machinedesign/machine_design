@@ -9,9 +9,9 @@ from keras.models import Model
 from ..common import activation_function
 from ..common import fully_connected_layers
 
-def fullyconnected(params):
-    input_shape = params['input_shape']
-    output_shape = params['output_shape']
+def fullyconnected(params, shapes):
+    input_shape = shapes['X']
+    output_shape = shapes['X']
     output_shape_flat = np.prod(output_shape)
     nb_hidden_units = params['nb_hidden_units_list']
     hidden_activation = params['hidden_activation']

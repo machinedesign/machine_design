@@ -1,3 +1,5 @@
+import os
+
 from keras.layers import Activation
 from keras.layers import Dense
 from keras import optimizers
@@ -6,9 +8,9 @@ from keras import objectives
 def activation_function(name):
     return Activation(name)
 
-def fully_connected_layers(x, nb_hidden_units, activation):
+def fully_connected_layers(x, nb_hidden_units, activation, init='glorot_uniform'):
     for nb_hidden in nb_hidden_units:
-        x = Dense(nb_hidden)(x)
+        x = Dense(nb_hidden, init=init)(x)
         x = activation_function(activation)(x)
     return x
 
@@ -28,3 +30,7 @@ def get_loss(name, objectives=objectives):
 
 def object_to_dict(obj):
     return obj.__dict__
+
+def mkdir_path(path):
+    if not os.access(path, os.F_OK):
+        os.makedirs(path)

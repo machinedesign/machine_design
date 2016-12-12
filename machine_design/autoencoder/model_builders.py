@@ -20,7 +20,7 @@ def fullyconnected(params, shapes):
     inp = x
     x = Flatten()(x)
     x = fully_connected_layers(x, nb_hidden_units, hidden_activation)
-    x = Dense(output_shape_flat)(x)
+    x = Dense(output_shape_flat, init='glorot_uniform')(x)
     x = Reshape(output_shape)(x)
     x = activation_function(output_activation)(x)
     out = x

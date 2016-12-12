@@ -11,7 +11,7 @@ eps = 1e-8
 class Dummy(Callback):
     pass
 
-class CallbackList(Callback):
+class CallbackContainer(Callback):
 
     def __init__(self, callbacks):
         self.callbacks = callbacks
@@ -130,6 +130,29 @@ class TimeBudget(Callback):
         t = time.time()
         if t - self.start >= self.budget_secs:
             raise BudgetFinishedException()
+
+class RecordEachEpoch(Callback):
+
+    def __init__(self, name, compute_fn, on_logs=True):
+        self.name = name
+        self.compute_fn = compute_fn
+        self.values = []
+        self.on_logs = on_logs
+
+    def on_epoch_end(self, batch, logs={}):
+        val = self.compute_fn()
+        if self.on_logs:
+            logs[self.name] = val
+        self.values.append(val)
+
+class DoEachEpoch(Callback):
+
+    def __init__(self, func):
+        self.func = func
+
+    def on_epoch_end(self, epoch, logs={}):
+        self.epoch = epoch
+        self.func(self)
 
 def build_early_stopping_callback(name, params, outdir='out', model=None):
     if name == 'basic':

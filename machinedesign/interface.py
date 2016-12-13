@@ -67,7 +67,7 @@ def train(params, builders={}, inputs='X', outputs='y', logger=logger, callbacks
 
     # Build and compile model
     shapes = get_shapes(pipeline_load(data['train']['pipeline']))
-    model = build_model(
+    model = _build_model(
         name=model_name, params=model_params,
         shapes=shapes, builders=builders)
 
@@ -115,7 +115,7 @@ def train(params, builders={}, inputs='X', outputs='y', logger=logger, callbacks
     for metric in metrics:
         metric_func = getattr(metric_functions, metric)
         for which in ('train',):
-            compute_func = build_compute_func(
+            compute_func = _build_compute_func(
                 predict=model.predict,
                 data_generator=lambda: iterators[which].flow(batch_size=batch_size, repeat=False),
                 metric=metric_func,
@@ -131,13 +131,14 @@ def train(params, builders={}, inputs='X', outputs='y', logger=logger, callbacks
         early_stopping,
         checkpoint
     ]
-    callbacks = basic_callbacks + metric_callbacks + callbacks + [time_budget]
+    callbacks = metric_callbacks + basic_callbacks + callbacks + [time_budget]
     for cb in callbacks:
         cb.model = model
         cb.data_iterators = iterators
         cb.params = params
     callbacks = CallbackContainer(callbacks)
-    print(nb_minibatches)
+
+    # Training loop
     for epoch in range(max_nb_epochs):
         logger.info('Epoch {:05d}...'.format(epoch))
         stats = {}
@@ -152,20 +153,29 @@ def train(params, builders={}, inputs='X', outputs='y', logger=logger, callbacks
             break
         for k, v in stats.items():
             logger.info('{}={:.4f}'.format(k, v))
-
-def build_compute_func(predict, data_generator, metric, inputs='X', outputs='y', aggregate=np.mean):
-    pred_output = lambda: imap(lambda data: predict(data[inputs]), data_generator())
-    real_output = lambda: imap(lambda data:data[outputs], data_generator())
-    compute_func = lambda: aggregate(compute_metric(real_output(), pred_output(), metric))
-    return compute_func
-
-def build_model(name, params, shapes, builders={}):
-    model_builder = builders[name]
-    model = model_builder(params, shapes) # keras model
-    return model
+        _update_history(model, logs=stats)
 
 def load(folder):
     pass
 
 def generate(params):
     pass
+
+def _update_history(model, logs):
+    for k, v in logs.items():
+        if k not in model.history.history:
+            model.history.history[k] = []
+        model.history.history[k].append(v)
+
+def _build_compute_func(predict, data_generator, metric,
+                        inputs='X', outputs='y',
+                        aggregate=np.mean):
+    pred_output = lambda: imap(lambda data: predict(data[inputs]), data_generator())
+    real_output = lambda: imap(lambda data: data[outputs], data_generator())
+    compute_func = lambda: aggregate(compute_metric(real_output(), pred_output(), metric))
+    return compute_func
+
+def _build_model(name, params, shapes, builders={}):
+    model_builder = builders[name]
+    model = model_builder(params, shapes) # keras model
+    return model

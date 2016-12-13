@@ -12,7 +12,7 @@ except ImportError:
     print('numpy is required during installation')
     sys.exit(1)
 
-setup(name='machine_design',
+setup(name='machinedesign',
       version='0.0.1',
       description='A framework for machine design',
       author='Mehdi Cherti',

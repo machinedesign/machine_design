@@ -4,6 +4,14 @@ from keras.layers import Activation
 from keras.layers import Dense
 from keras import optimizers
 from keras import objectives
+from keras import backend as K
+
+def mean_squared_error(y_true, y_pred):
+    return K.mean(K.square(y_pred - y_true))
+
+custom_objectives = {
+    'mean_squared_error': mean_squared_error
+}
 
 def activation_function(name):
     return Activation(name)
@@ -26,7 +34,12 @@ def build_optimizer(algo_name, algo_params, optimizers=optimizers):
     return optimizer
 
 def get_loss(name, objectives=objectives):
-    return getattr(objectives, name)
+    try:
+        func = custom_objectives[name]
+    except AttributeError:
+        return getattr(objectives, name)
+    else:
+        return func
 
 def object_to_dict(obj):
     return obj.__dict__

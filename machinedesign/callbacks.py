@@ -6,7 +6,7 @@ from keras.callbacks import Callback
 from keras.callbacks import EarlyStopping
 from keras.callbacks import ModelCheckpoint
 
-eps = 1e-8
+EPS = 1e-8
 
 class Dummy(Callback):
     pass
@@ -37,7 +37,7 @@ class LearningRateScheduler(Callback):
     # TODO factorize this
     # TODO document this
     def __init__(self, name='decrease_when_stop_improving',
-                 params=None, print=print, eps=eps):
+                 params=None, print=print, eps=EPS):
         self.schedule_params = params if params else {}
         self.name = name
         self.print = print
@@ -109,7 +109,7 @@ class LearningRateScheduler(Callback):
             raise Exception('Unknown lr schedule : {}'.format(self.name))
         min_lr = params.get('min_lr', 0)
         new_lr = max(new_lr, min_lr)
-        if abs(new_lr - old_lr) > eps:
+        if abs(new_lr - old_lr) > self.eps:
             self.print('prev learning rate : {}, '
                   'new learning rate : {}'.format(old_lr, new_lr))
         K.set_value(self.model.optimizer.lr, new_lr)

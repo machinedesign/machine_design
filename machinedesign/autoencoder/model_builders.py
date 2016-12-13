@@ -9,7 +9,7 @@ from keras.models import Model
 from ..common import activation_function
 from ..common import fully_connected_layers
 
-def fullyconnected(params, shapes):
+def fully_connected(params, shapes):
     input_shape = shapes['X']
     output_shape = shapes['X']
     output_shape_flat = np.prod(output_shape)

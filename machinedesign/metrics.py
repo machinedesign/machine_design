@@ -11,7 +11,8 @@ def mean_squared_error(y_true, y_pred):
 
 def compute_metric(real, pred, metric):
     vals = []
-    for pred, real in izip(pred, real):
-        vals.append(metric(real, pred))
+    real = list(real)
+    for pred_, real_ in izip(pred, real):
+        vals.append(metric(real_, pred_))
     vals = np.concatenate(vals, axis=0)
     return vals

@@ -51,7 +51,6 @@ def _report_reconstruction(cb):
     filename = os.path.join(folder, '{:05d}.png'.format(epoch))
     imsave(filename, img)
 
-
 def _get_input_reconstruction_grid(X, X_rec, grid_of_images=grid_of_images):
     X = grid_of_images(X)
     X_rec = grid_of_images(X_rec)
@@ -77,7 +76,10 @@ def main():
                     {"name": "divide_by", "params": {"value": 255}},
                     {"name": "order", "params": {"order": "th"}}
                 ]
-            }
+            },
+            'transformers':[
+                {'name': 'Standardize', 'params': {}}
+            ]
         },
         'report':{
             'outdir': 'out',

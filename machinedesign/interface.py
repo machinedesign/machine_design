@@ -21,10 +21,16 @@ from .callbacks import build_early_stopping_callback
 from .callbacks import build_model_checkpoint_callback
 from .callbacks import build_lr_schedule_callback
 
+from .transformers import make_transformers_pipeline
+from .transformers import transform
+from .transformers import fit_transformers
+
 from . import metrics as metric_functions
 from .metrics import compute_metric
 
+import pickle
 import logging
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -70,11 +76,34 @@ def train(params, builders={}, inputs='X', outputs='y', logger=logger, callbacks
     # set the seed there
     np.random.seed(seed)
 
+    # build and fit transformers
+    train_pipeline = data['train']['pipeline']
+
+    logger.info('Fitting transformers on training data...')
+    transformers = make_transformers_pipeline(data['transformers'])
+    fit_transformers(
+        transformers,
+        lambda: imap(lambda d:d[inputs], pipeline_load(train_pipeline))
+    )
+    # save transformers
+    with open(os.path.join(outdir, 'transformers.pkl'), 'wb') as fd:
+        pickle.dump(transformers, fd)
+
+    # Load data iterators
+    iterators = {}
+    nb_train_samples = get_nb_samples(train_pipeline)
+    nb_minibatches = get_nb_minibatches(nb_train_samples, batch_size)
+    train_generator = lambda: transform(pipeline_load(train_pipeline), transformers)
+    train = BatchIterator(train_generator, cols=[inputs, outputs])
+    iterators['train'] = train
+
     # Build and compile model
-    shapes = get_shapes(pipeline_load(data['train']['pipeline']))
+    shapes = get_shapes(pipeline_load(train_pipeline))
     model = _build_model(
-        name=model_name, params=model_params,
-        shapes=shapes, builders=builders)
+        name=model_name,
+        params=model_params,
+        shapes=shapes,
+        builders=builders)
 
     optimizer = build_optimizer(algo_name, algo_params)
     loss = get_loss(loss_name)
@@ -86,35 +115,20 @@ def train(params, builders={}, inputs='X', outputs='y', logger=logger, callbacks
     logger.info('Number of weight parameters : {}'.format(nb_W_params))
     logger.info('Number of learnable layers : {}'.format(nb))
 
-    # Load data iterators
-    iterators = {}
-
-    nb_train_samples = get_nb_samples(data['train']['pipeline'])
-    nb_minibatches = get_nb_minibatches(nb_train_samples, batch_size)
-    train = BatchIterator(
-        lambda: pipeline_load(data['train']['pipeline']),
-        cols=[inputs, outputs]
-    )
-    train_iterator = train.flow(batch_size=batch_size, repeat=True)
-    iterators['train'] = train
-
     # Build callbacks
     learning_rate_scheduler = build_lr_schedule_callback(
         name=lr_schedule_name,
         params=lr_schedule_params,
-        print=logger.debug,
-        model=model)
+        print=logger.debug)
 
     early_stopping = build_early_stopping_callback(
         name=early_stopping_name,
-        params=early_stopping_params,
-        model=model)
+        params=early_stopping_params)
 
     model_filename = os.path.join(outdir, 'model.pkl')
     checkpoint = build_model_checkpoint_callback(
         model_filename=model_filename,
-        params=checkpoint,
-        model=model)
+        params=checkpoint)
 
     metric_callbacks = []
     for metric in metrics:
@@ -144,6 +158,7 @@ def train(params, builders={}, inputs='X', outputs='y', logger=logger, callbacks
     callbacks = CallbackContainer(callbacks)
 
     # Training loop
+    train_iterator = train.flow(batch_size=batch_size, repeat=True)
     for epoch in range(max_nb_epochs):
         logger.info('Epoch {:05d}...'.format(epoch))
         stats = {}

@@ -6,7 +6,7 @@ except ImportError:
     imap = map
 
 from .common import build_optimizer
-from .common import get_loss
+from .objectives import get_loss
 from .data import pipeline_load
 from .data import get_nb_samples
 from .data import get_nb_minibatches
@@ -27,6 +27,10 @@ from .metrics import compute_metric
 import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+__all__ = [
+    "train"
+]
 
 def train(params, builders={}, inputs='X', outputs='y', logger=logger, callbacks=[]):
     """

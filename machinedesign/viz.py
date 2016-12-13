@@ -1,6 +1,30 @@
+"""
+This module contains common visualization functions
+used to report results of the models.
+"""
 import numpy as np
 
 def horiz_merge(left, right):
+    """
+    merges two images, left and right horizontally to obtain
+    a bigger image containing both.
+
+    Parameters
+    ---------
+    left: 2D or 3D numpy array
+        left image.
+        2D for grayscale.
+        3D for color.
+    right : numpy array array
+        right image.
+        2D for grayscale
+        3D for color.
+
+    Returns
+    -------
+
+    numpy array (2D or 3D depending on left and right)
+    """
     assert left.shape[0] == right.shape[0]
     assert left.shape[2:] == right.shape[2:]
     shape = (left.shape[0], left.shape[1] + right.shape[1],) + left.shape[2:]
@@ -9,7 +33,37 @@ def horiz_merge(left, right):
     im_merge[:, left.shape[1]:] = right
     return im_merge
 
-def grid_of_images(M, border=0, bordercolor=[0.0, 0.0, 0.0], shape = None, normalize=False):
+def grid_of_images(M, border=0, bordercolor=[0.0, 0.0, 0.0], shape=None, normalize=False):
+    """
+    Draw a grid of images from M
+    The order in the grid which corresponds to the order in M
+    is starting from top to bottom then left to right.
+
+    Parameters
+    ----------
+
+    M : numpy array
+        if 3D, convert it to 4D, the shape will be interpreted as (nb_images, h, w) and converted to (nb_images, 1, h, w).
+        if 4D, consider it as colored or grayscale
+            - if the shape is (nb_images, nb_colors, h, w), it is converted to (nb_images, h, w, nb_colors)
+            - otherwise, if it already (nb_images, h, w, nb_colors), use it as it is.
+            - nb_colors can be 1 (grayscale) or 3 (colors).
+    border: int
+        thickness of border(default=0)
+    shape: tuple (nb_cols, nb_rows)
+        shape of the grid
+        by default make a square shape
+        (in that case, it is possible that not all images from M will be part of the grid).
+    normalize: bool(default=False)
+        whether to normalize the pixel values of each image independently
+        by min and max.
+
+    Returns
+    -------
+
+    3D numpy array of shape (h, w, 3)
+    (with a color channel regardless of whether the original images were grayscale or colored)
+    """
     if len(M.shape) == 3:
         M = M[:, :, :, np.newaxis]
     if M.shape[-1] not in (1, 3):

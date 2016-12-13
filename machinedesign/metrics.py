@@ -9,10 +9,9 @@ def mean_squared_error(y_true, y_pred):
     score = ((y_true - y_pred)**2).mean(axis=axes)
     return score
 
-def compute_metric(real, pred, metric):
+def compute_metric(get_real_and_pred, metric):
     vals = []
-    real = list(real)
-    for pred_, real_ in izip(pred, real):
-        vals.append(metric(real_, pred_))
+    for real, pred in get_real_and_pred():
+        vals.append(metric(real, pred))
     vals = np.concatenate(vals, axis=0)
     return vals

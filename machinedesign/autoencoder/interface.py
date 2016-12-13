@@ -38,6 +38,7 @@ def _report_reconstruction(cb):
     data_iterators = cb.data_iterators
     params = cb.params
     epoch = cb.epoch
+
     data = next(data_iterators['train'].flow(batch_size=128))
     X = data['X']
     X_rec = model.predict(X)
@@ -70,8 +71,8 @@ def main():
         'data': {
             'train': {
                 'pipeline':[
-                    {"name": "toy", "params": {"nb": 256, "w": 8, "h": 8, "pw": 2, "ph": 2, "nb_patches": 2, "random_state": 42}},
-                    {"name": "shuffle", "params": {}},
+                    {"name": "toy", "params": {"nb": 128, "w": 8, "h": 8, "pw": 2, "ph": 2, "nb_patches": 2, "random_state": 42}},
+                    {"name": "shuffle", "params": {"random_state": None}},
                     {"name": "normalize_shape", "params": {}},
                     {"name": "divide_by", "params": {"value": 255}},
                     {"name": "order", "params": {"order": "th"}}
@@ -101,6 +102,7 @@ def main():
             },
             'max_nb_epochs': 40,
             'batch_size': 128,
+            'pred_batch_size': 128,
             'loss': 'mean_squared_error',
             'budget_secs': 3600,
             'seed': 42

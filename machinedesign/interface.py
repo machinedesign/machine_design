@@ -46,6 +46,7 @@ def train(params, builders={}, inputs='X', outputs='y', logger=logger, callbacks
     optim = params['optim']
     max_nb_epochs = optim['max_nb_epochs']
     batch_size = optim['batch_size']
+    pred_batch_size = optim['pred_batch_size']
     algo_name = optim['algo']['name']
     algo_params = optim['algo']['params']
     loss_name = optim['loss']
@@ -117,7 +118,7 @@ def train(params, builders={}, inputs='X', outputs='y', logger=logger, callbacks
         for which in ('train',):
             compute_func = _build_compute_func(
                 predict=model.predict,
-                data_generator=lambda: iterators[which].flow(batch_size=batch_size, repeat=False),
+                data_generator=lambda: iterators[which].flow(batch_size=pred_batch_size, repeat=False),
                 metric=metric_func,
                 inputs=inputs,
                 outputs=outputs,
@@ -170,9 +171,8 @@ def _update_history(model, logs):
 def _build_compute_func(predict, data_generator, metric,
                         inputs='X', outputs='y',
                         aggregate=np.mean):
-    pred_output = lambda: imap(lambda data: predict(data[inputs]), data_generator())
-    real_output = lambda: imap(lambda data: data[outputs], data_generator())
-    compute_func = lambda: aggregate(compute_metric(real_output(), pred_output(), metric))
+    get_real_and_pred = lambda: imap(lambda data: (data[inputs], predict(data[inputs])), data_generator())
+    compute_func = lambda: aggregate(compute_metric(get_real_and_pred, metric))
     return compute_func
 
 def _build_model(name, params, shapes, builders={}):

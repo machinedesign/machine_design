@@ -3,6 +3,8 @@ This module contains some common functions used in models
 """
 import os
 
+import numpy as np
+
 from keras.layers import Activation
 from keras.layers import Dense
 from keras import optimizers
@@ -71,3 +73,36 @@ def mkdir_path(path):
     """
     if not os.access(path, os.F_OK):
         os.makedirs(path)
+
+
+def minibatcher(func, batch_size=1000):
+  """
+  Decorator to apply a function minibatch wise to avoid memory
+  problems.
+
+  Paramters
+  ---------
+  func : a function that takes an input and returns an output
+  batch_size : int
+    size of each minibatch
+
+  iterate through all the minibatches, call func, get the results,
+  then concatenate all the results.
+  """
+  def f(X):
+      results = []
+      for sl in iterate_minibatches(len(X), batch_size):
+          results.append(func(X[sl]))
+      return np.concatenate(results, axis=0)
+  return f
+
+def iterate_minibatches(nb_inputs, batchsize, shuffle=False):
+  if shuffle:
+      indices = np.arange(nb_inputs)
+      np.random.shuffle(indices)
+  for start_idx in range(0, max(nb_inputs, nb_inputs - batchsize + 1), batchsize):
+      if shuffle:
+          excerpt = indices[start_idx:start_idx + batchsize]
+      else:
+          excerpt = slice(start_idx, start_idx + batchsize)
+      yield excerpt

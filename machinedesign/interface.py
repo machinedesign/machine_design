@@ -6,6 +6,8 @@ except ImportError:
     imap = map
 
 from .common import build_optimizer
+from .common import mkdir_path
+
 from .objectives import get_loss
 from .data import pipeline_load
 from .data import get_nb_samples
@@ -86,6 +88,7 @@ def train(params, builders={}, inputs='X', outputs='y', logger=logger, callbacks
         lambda: imap(lambda d:d[inputs], pipeline_load(train_pipeline))
     )
     # save transformers
+    mkdir_path(outdir)
     with open(os.path.join(outdir, 'transformers.pkl'), 'wb') as fd:
         pickle.dump(transformers, fd)
 
@@ -109,11 +112,7 @@ def train(params, builders={}, inputs='X', outputs='y', logger=logger, callbacks
     loss = get_loss(loss_name)
     model.compile(loss=loss, optimizer=optimizer)
 
-    logger.info('Number of parameters : {}'.format(model.count_params()))
-    nb = sum(1 for layer in model.layers if hasattr(layer, 'W'))
-    nb_W_params = sum(np.prod(layer.W.get_value().shape) for layer in model.layers if hasattr(layer, 'W'))
-    logger.info('Number of weight parameters : {}'.format(nb_W_params))
-    logger.info('Number of learnable layers : {}'.format(nb))
+    show_model_info(model, print=logger.info)
 
     # Build callbacks
     learning_rate_scheduler = build_lr_schedule_callback(
@@ -125,7 +124,7 @@ def train(params, builders={}, inputs='X', outputs='y', logger=logger, callbacks
         name=early_stopping_name,
         params=early_stopping_params)
 
-    model_filename = os.path.join(outdir, 'model.pkl')
+    model_filename = os.path.join(outdir, 'model.h5')
     checkpoint = build_model_checkpoint_callback(
         model_filename=model_filename,
         params=checkpoint)
@@ -174,12 +173,20 @@ def train(params, builders={}, inputs='X', outputs='y', logger=logger, callbacks
         for k, v in stats.items():
             logger.info('{}={:.4f}'.format(k, v))
         _update_history(model, logs=stats)
+    return model
 
 def load(folder):
     pass
 
 def generate(params):
     pass
+
+def show_model_info(model, print=print):
+    print('Number of parameters : {}'.format(model.count_params()))
+    nb = sum(1 for layer in model.layers if hasattr(layer, 'W'))
+    nb_W_params = sum(np.prod(layer.W.get_value().shape) for layer in model.layers if hasattr(layer, 'W'))
+    print('Number of weight parameters : {}'.format(nb_W_params))
+    print('Number of learnable layers : {}'.format(nb))
 
 def _update_history(model, logs):
     for k, v in logs.items():

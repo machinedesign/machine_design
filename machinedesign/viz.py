@@ -2,7 +2,9 @@
 This module contains common visualization functions
 used to report results of the models.
 """
+from functools import partial
 import numpy as np
+
 
 def horiz_merge(left, right):
     """
@@ -56,7 +58,8 @@ def grid_of_images(M, border=0, bordercolor=[0.0, 0.0, 0.0], shape=None, normali
         (in that case, it is possible that not all images from M will be part of the grid).
     normalize: bool(default=False)
         whether to normalize the pixel values of each image independently
-        by min and max.
+        by min and max. if False, clip the values of pixels to 0 and 1
+        without normalizing.
 
     Returns
     -------
@@ -78,6 +81,8 @@ def grid_of_images(M, border=0, bordercolor=[0.0, 0.0, 0.0], shape=None, normali
         for i in range(M.shape[0]):
             M[i] -= M[i].flatten().min()
             M[i] /= M[i].flatten().max()
+    else:
+        M = np.clip(M, 0, 1)
     height, width, three = M[0].shape
     assert three == 3
     if shape is None:
@@ -99,3 +104,5 @@ def grid_of_images(M, border=0, bordercolor=[0.0, 0.0, 0.0], shape=None, normali
                   bordercolor*np.ones((border,width+border,3),dtype=float)
                   ), 0)
     return im
+
+grid_of_images_default = partial(grid_of_images, border=1, bordercolor=(0.3, 0, 0))

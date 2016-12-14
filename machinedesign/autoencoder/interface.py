@@ -1,7 +1,6 @@
 import numpy as np
 import os
 import logging
-from functools import partial
 import pickle
 
 from skimage.io import imsave
@@ -13,7 +12,8 @@ from ..interface import train as train_basic
 from ..common import object_to_dict
 from ..common import mkdir_path
 from ..common import minibatcher
-from ..viz import grid_of_images
+from ..common import WrongModelFamilyException
+from ..viz import grid_of_images_default
 from ..viz import horiz_merge
 from ..callbacks import DoEachEpoch
 from . import model_builders
@@ -24,6 +24,9 @@ logger = logging.getLogger(__name__)
 model_builders = object_to_dict(model_builders)
 
 def train(params):
+    family = params['family']
+    if family != 'autoencoder':
+        raise WrongModelFamilyException("expected family to be 'autoencoder', got {}".format(family))
     report_callbacks = []
     domain_specific = params['report'].get('domain_specific')
     if domain_specific:
@@ -104,8 +107,10 @@ def _apply_noise(name, params, X):
         X = (np.random.uniform(size=X.shape) <= (1 - noise_pr)) * X
         X = floatX(X)
         return X
-    else:
+    elif name == 'none':
         return X
+    else:
+        raise ValueError('Unknown noise method : {}'.format(name))
 
 def _apply_binarization(name, params, X):
     if name == 'sample_bernoulli':
@@ -123,8 +128,10 @@ def _apply_binarization(name, params, X):
         X = X > value
         X = floatX(X)
         return X
-    else:
+    elif name == 'none':
         return X
+    else:
+        raise ValueError('Unknown binarization method  : {}'.format(name))
 
 def get_method(name):
     return {'iterative_refinement': _iterative_refinement}[name]
@@ -138,16 +145,13 @@ def _report_image_reconstruction(cb):
     data = next(data_iterators['train'].flow(batch_size=128))
     X = data['X']
     X_rec = model.predict(X)
-    X = np.clip(X, 0, 1)
-    X_rec = np.clip(X_rec, 0, 1)
-    grid_of_images_ = partial(grid_of_images, border=1, bordercolor=(0.3, 0, 0))
-    img = _get_input_reconstruction_grid(X, X_rec, grid_of_images=grid_of_images_)
+    img = _get_input_reconstruction_grid(X, X_rec, grid_of_images=grid_of_images_default)
     folder = os.path.join(params['report']['outdir'], 'recons')
     mkdir_path(folder)
     filename = os.path.join(folder, '{:05d}.png'.format(epoch))
     imsave(filename, img)
 
-def _get_input_reconstruction_grid(X, X_rec, grid_of_images=grid_of_images):
+def _get_input_reconstruction_grid(X, X_rec, grid_of_images=grid_of_images_default):
     X = grid_of_images(X)
     X_rec = grid_of_images(X_rec)
     img = horiz_merge(X, X_rec)
@@ -155,10 +159,11 @@ def _get_input_reconstruction_grid(X, X_rec, grid_of_images=grid_of_images):
 
 def main():
     params = {
+        'family': 'autoencoder',
         'model': {
             'name': 'fully_connected',
             'params':{
-                'fully_connected_nb_hidden_units_list': [100],
+                'fully_connected_nb_hidden_units_list': [10],
                 'fully_connected_activation': 'relu',
                 'output_activation': 'sigmoid'
              }
@@ -166,7 +171,7 @@ def main():
         'data': {
             'train': {
                 'pipeline':[
-                    {"name": "toy", "params": {"nb": 128, "w": 8, "h": 8, "pw": 2, "ph": 2, "nb_patches": 2, "random_state": 42}},
+                    {"name": "toy", "params": {"nb": 10000, "w": 8, "h": 8, "pw": 2, "ph": 2, "nb_patches": 2, "random_state": 42}},
                     {"name": "shuffle", "params": {"random_state": 42}},
                     {"name": "normalize_shape", "params": {}},
                     {"name": "divide_by", "params": {"value": 255}},
@@ -218,7 +223,7 @@ def main():
                 'nb_samples': 10,
                 'nb_iter': 10,
                 'binarize':{
-                    'name': 'binary_threshold',
+                    'name': 'none',
                     'params': {
                         'is_moving': False,
                         'value': 0.5

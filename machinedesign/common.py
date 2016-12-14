@@ -106,3 +106,6 @@ def iterate_minibatches(nb_inputs, batchsize, shuffle=False):
       else:
           excerpt = slice(start_idx, start_idx + batchsize)
       yield excerpt
+
+class WrongModelFamilyException(ValueError):
+    pass

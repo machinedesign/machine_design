@@ -1,4 +1,5 @@
 PYTHON ?= python
+PYTEST ?= pytest
 
 inplace:
 	$(PYTHON) setup.py develop
@@ -9,4 +10,4 @@ clean:
 	$(PYTHON) setup.py clean
 
 test: inplace
-	nosetests --with-coverage --cover-package=machinedesign -v
+	$(PYTEST) --cov=machinedesign --cov-report term-missing -v

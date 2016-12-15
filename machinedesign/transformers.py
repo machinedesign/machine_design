@@ -14,8 +14,10 @@ EPS = 1e-10
 class Standardize:
 
     """
-    Standardize transformer
-    (normalized by substracting mean and dividing by std).
+    Standardize transformer.
+    Estimate mean and std of each feature then
+    transforms by substracting the mean and dividing
+    by std.
 
     Parameters
     ----------
@@ -44,6 +46,7 @@ class Standardize:
         self.eps = eps
 
     def transform(self, X):
+        self._check_if_fitted()
         X = (X - self.mean_) / (self.std_ + self.eps)
         return X
 

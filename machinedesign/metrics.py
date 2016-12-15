@@ -35,10 +35,13 @@ def compute_metric(get_true_and_pred, metric):
     Returns
     -------
 
-    float, the metric value.
+    numpy array
+        the metric value for each individual element.
     """
     vals = []
     for real, pred in get_true_and_pred():
         vals.append(metric(real, pred))
+    if len(vals) == 0:
+        return []
     vals = np.concatenate(vals, axis=0)
     return vals

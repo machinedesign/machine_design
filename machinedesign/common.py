@@ -93,18 +93,31 @@ def minibatcher(func, batch_size=1000):
       results = []
       for sl in iterate_minibatches(len(X), batch_size):
           results.append(func(X[sl]))
-      return np.concatenate(results, axis=0)
+      if len(results) == 0:
+          return []
+      else:
+          return np.concatenate(results, axis=0)
   return f
 
-def iterate_minibatches(nb_inputs, batchsize, shuffle=False):
-  if shuffle:
-      indices = np.arange(nb_inputs)
-      np.random.shuffle(indices)
-  for start_idx in range(0, max(nb_inputs, nb_inputs - batchsize + 1), batchsize):
-      if shuffle:
-          excerpt = indices[start_idx:start_idx + batchsize]
-      else:
-          excerpt = slice(start_idx, start_idx + batchsize)
+def iterate_minibatches(nb_inputs, batch_size):
+  """
+  Get slices pointing to indices of example forming minibatches
+
+  Paramaters
+  ----------
+  nb_inputs : int
+    size of the data
+  batch_size : int
+    minibatch size
+
+  Yields
+  ------
+
+  slice
+  """
+  for start_idx in range(0, nb_inputs, batch_size):
+      end_idx = min(start_idx + batch_size, nb_inputs)
+      excerpt = slice(start_idx, end_idx)
       yield excerpt
 
 class WrongModelFamilyException(ValueError):

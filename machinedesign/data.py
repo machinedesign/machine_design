@@ -23,26 +23,48 @@ __all__ = [
     "get_nb_minibatches",
     "BatchIterator",
     "floatX",
-    "ArrayBatchIterator",
 ]
 
 operators = image_operators
 pipeline_load = partial(pipeline_load, operators=operators)
 
 def get_nb_samples(pipeline):
-    """get nb of samples of a pipeline"""
+    """
+    get nb of samples of a pipeline
+
+    Parameters
+    ----------
+
+    pipeline : list of dict
+
+    Returns
+    -------
+
+    int
+    """
+    if len(pipeline) == 0:
+        return 0
     p = pipeline[0:1]
     p = pipeline_load(p)
     p = list(p)
     return len(p)
 
-def get_shapes(iterator):
+def get_shapes(sample):
     """
-    get the shapes of a data iterator
+    get the shapes of a sample with modalities
     it returns a dict where the keys are the modalities (e.g `X`, `y`)
     and the values are the shapes (exluding the nb_examples dimension).
+
+    Parameters
+    ----------
+
+    sample : dict
+
+    Returns
+    -------
+
+    dict
     """
-    sample = next(iterator)
     return {k: v.shape for k, v in sample.items()}
 
 def get_nb_minibatches(nb_samples, batch_size):
@@ -50,6 +72,8 @@ def get_nb_minibatches(nb_samples, batch_size):
     get nb of minibatches corresponding to a dataset of size `nb_samples`
     and a minibatch of size `batch_size`.
     """
+    if batch_size == 0:
+        return 0
     return (nb_samples // batch_size) + (nb_samples % batch_size > 0)
 
 class BatchIterator(object):
@@ -60,7 +84,7 @@ class BatchIterator(object):
     ----------
 
     iterator_func: callable
-        returns an iterator of dicts.
+        callable that returns an iterator of dicts.
         the keys of the dict are the modalities (e.g `X`, `y`).
     cols :list
         list of modalities to use from `iterator_func`
@@ -101,34 +125,3 @@ class BatchIterator(object):
 
 def floatX(X):
     return np.array(X).astype('float32')
-
-class ArrayBatchIterator(object):
-    """
-    like `BatchIterator` but used when the modalities are plain numpy arrays
-    """
-    def __init__(self, inputs, targets=None,
-                 shuffle=False, random_state=None):
-        self.inputs = inputs
-        self.targets = targets
-        self.shuffle = shuffle
-        self.random_state = random_state
-        self.rng = np.random.RandomState(random_state)
-        if targets is not None:
-            assert len(inputs) == len(targets)
-
-    def flow(self, batch_size=128, repeat=True):
-        while True:
-            if self.shuffle:
-                indices = np.arange(len(self.inputs))
-                self.rng.shuffle(indices)
-            for start_idx in range(0, len(self.inputs), batch_size):
-                if self.shuffle:
-                    excerpt = indices[start_idx:start_idx + batch_size]
-                else:
-                    excerpt = slice(start_idx, start_idx + batch_size)
-                if self.targets is not None:
-                    yield self.inputs[excerpt], self.targets[excerpt]
-                else:
-                    yield self.inputs[excerpt]
-            if repeat is False:
-                break

@@ -101,7 +101,7 @@ def train(params, builders={}, inputs='X', outputs='y', logger=logger, callbacks
     iterators['train'] = train
 
     # Build and compile model
-    shapes = get_shapes(pipeline_load(train_pipeline))
+    shapes = get_shapes(next(pipeline_load(train_pipeline)))
     model = _build_model(
         name=model_name,
         params=model_params,

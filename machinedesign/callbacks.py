@@ -54,8 +54,6 @@ class CallbackContainer(Callback):
 
 
 class LearningRateScheduler(Callback):
-    # TODO factorize this
-    # TODO document this
     """
     Callback for learning rate scheduling
 
@@ -134,57 +132,129 @@ class LearningRateScheduler(Callback):
             new_lr = old_lr
         elif self.name == 'constant':
             new_lr = old_lr
+            new_lr = lr_schedule_constant(old_lr)
         elif self.name == 'decrease_when_stop_improving':
             patience = params['patience']
             mode = params.get('mode', 'auto')
             loss = params['loss']
             shrink_factor = params['shrink_factor']
-            if epoch < patience:
-                new_lr = old_lr
-            else:
-                hist = model.history.history
-                value_epoch = logs[loss]
-                if mode == 'auto':
-                    best = max if 'acc' in loss else min
-                else:
-                    best = {'max': max, 'min': min}[mode]
-                arg_best = np.argmax if best == max else np.argmin
-                best_index = arg_best(hist[loss])
-                best_value = hist[loss][best_index]
-                if ( best(value_epoch, best_value) == best_value and
-                     epoch - best_index + 1 >= patience):
-                    self.print('shrinking learning rate, loss : {},'
-                          'prev best epoch : {}, prev best value : {},'
-                          'current value: {}'.format(loss,
-                                                     best_index + 1, best_value,
-                                                     value_epoch))
-                    new_lr = old_lr / shrink_factor
-                else:
-                    new_lr = old_lr
+            if mode == 'auto':
+                mode = 'max' if 'acc' in loss else 'min'
+            new_lr = lr_schedule_decrease_when_stop_improving(
+                old_lr,
+                patience=patience,
+                mode=mode,
+                shrink_factor=shrink_factor,
+                loss_history=model.history.history[loss] + [logs[loss]])
         elif self.name == 'decrease_every':
             every = params['every']
             shrink_factor = params['shrink_factor']
-            if epoch % (every) == 0:
-                new_lr = old_lr / shrink_factor
-            else:
-                new_lr = old_lr
+            new_lr = lr_schedule_decrease_every(
+                old_lr,
+                every=every,
+                shrink_factor=shrink_factor,
+                epoch=epoch)
         elif self.name == 'manual':
             schedule = params['schedule']
-            new_lr = old_lr
-            for s in schedule:
-                first, last = s['range']
-                lr = s['lr']
-                if epoch >= first and epoch <= last:
-                    new_lr = lr
-                    break
+            new_lr = lr_schedule_manual(old_lr, schedule=schedule, epoch=epoch)
         else:
-            raise Exception('Unknown lr schedule : {}'.format(self.name))
+            raise ValueError('Unknown lr schedule : {}'.format(self.name))
         min_lr = params.get('min_lr', 0)
         new_lr = max(new_lr, min_lr)
         if not np.isclose(new_lr, old_lr):
+            self.print('Learning rate changed.')
             self.print('prev learning rate : {}, new learning rate : {}'.format(old_lr, new_lr))
         K.set_value(self.model.optimizer.lr, new_lr)
         logs['lr'] = new_lr
+
+def lr_schedule_constant(old_lr):
+    return old_lr
+
+def lr_schedule_decrease_when_stop_improving(old_lr,
+                                             patience,
+                                             mode,
+                                             shrink_factor,
+                                             loss_history):
+    """
+    divide the learning rate by `shrink_factor` if the `loss`
+    has not improved since `patience` epochs.
+
+    Parameters
+    ----------
+        old_lr : float
+            the old learning rate
+        patience: int
+            number of epochs without improvements of `loss` to wait
+        mode: str
+            'auto' or 'max' or 'min'
+            used to know whether we want maximize or minimize
+        shrink_factor: float
+            divide the `learning_rate` by it in case of no improvements.
+        loss_history: list of scalar
+            losses until the current iteration
+    """
+    epoch = len(loss_history)
+    if epoch < patience:
+        new_lr = old_lr
+    elif len(loss_history) == 0:
+        new_lr = old_lr
+    else:
+        cur_value = loss_history[-1]
+        max_or_min = {'max': max, 'min': min}[mode]
+        arg_best = np.argmax if max_or_min == max else np.argmin
+        best_index = arg_best(loss_history[0:-1])
+        best_value = loss_history[best_index]
+        not_improved = max_or_min(cur_value, best_value) == best_value
+        out_of_patience = (epoch - best_index + 1) >= patience
+        if (not_improved and out_of_patience):
+            new_lr = old_lr / shrink_factor
+        else:
+            new_lr = old_lr
+    return new_lr
+
+def lr_schedule_decrease_every(old_lr, every, shrink_factor, epoch):
+    """
+    divide the  learning rate by `shrink_factor` periodically
+
+    Parameters
+    ----------
+        shrink_factor: float
+            divide the `learning_rate` by it.
+        every: int
+            the length of the period
+    """
+    if every == 0:
+        new_lr = old_lr
+    elif epoch % (every) == 0:
+        new_lr = old_lr / shrink_factor
+    else:
+        new_lr = old_lr
+    return new_lr
+
+def lr_schedule_manual(old_lr, schedule, epoch):
+    """
+    manual schedule
+
+    Parameters
+    ----------
+        schedule : list of dicts
+             each dict has two keys, `range` and `lr`.
+            `range` is a tuple (start, end) defining an interval,
+            start and end are included in the interval.
+            `lr` is the learning rate used in the interval defined
+             by `range`.
+
+        epoch : int
+            Epoch number
+    """
+    new_lr = old_lr
+    for s in schedule:
+        first, last = s['range']
+        lr = s['lr']
+        if epoch >= first and epoch <= last:
+            new_lr = lr
+            break
+    return new_lr
 
 class TimeBudget(Callback):
     """
@@ -197,12 +267,13 @@ class TimeBudget(Callback):
     budget_secs: int
         budget in secs
     """
-    def __init__(self, budget_secs=float('inf')):
-        self.start = time.time()
+    def __init__(self, budget_secs=float('inf'), time=time.time):
+        self.start = time()
+        self.time = time
         self.budget_secs = budget_secs
 
     def on_epoch_end(self, epoch, logs={}):
-        t = time.time()
+        t = self.time()
         if t - self.start >= self.budget_secs:
             raise BudgetFinishedException()
 

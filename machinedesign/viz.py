@@ -83,8 +83,8 @@ def grid_of_images(M, border=0, bordercolor=[0.0, 0.0, 0.0], shape=None, normali
             M[i] /= M[i].flatten().max()
     else:
         M = np.clip(M, 0, 1)
-    height, width, three = M[0].shape
-    assert three == 3
+    height, width, color = M[0].shape
+    assert color == 3, 'Nb of color channels are {}'.format(color)
     if shape is None:
         n0 = np.int(np.ceil(np.sqrt(numimages)))
         n1 = np.int(np.ceil(np.sqrt(numimages)))

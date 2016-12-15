@@ -18,6 +18,7 @@ from ..viz import reshape_to_images
 from ..viz import grid_of_images_default
 from ..viz import horiz_merge
 from ..callbacks import DoEachEpoch
+from ..transformers import transform_one
 from ..transformers import inverse_transform_one
 from . import model_builders
 
@@ -84,10 +85,14 @@ def _iterative_refinement(params, model, folder):
     noise_params = noise['params']
 
     # Initialize the reconstructions
-    shape = model.input_shape[1:]
+    transformers = model.transformers
+    # shape is shape of inputs before
+    # applying the transformers (if there are transformers)
+    shape = transformers[0].input_shape_ if len(transformers) else model.input_shape[1:]
     X = np.empty((N, nb_iter + 1,) + shape)
     X = floatX(X)
-    X[:, 0] = np.random.uniform(size=(N,) + shape)
+    s = np.random.uniform(size=(N,) + model.input_shape[1:])
+    X[:, 0] = inverse_transform_one(s, transformers)
 
     # Build apply function
     reconstruct = minibatcher(model.predict, batch_size=batch_size)
@@ -95,12 +100,10 @@ def _iterative_refinement(params, model, folder):
     # reconstruction loop
     for i in (range(1, nb_iter + 1)):
         print('Iteration {}'.format(i))
-        sprev = X[:, i - 1]
-        s = sprev
         s = _apply_noise(noise_name, noise_params, s)
         s = reconstruct(s)
         s = _apply_binarization(binarize_name, binarize_params, s)
-        X[:, i] = s
+        X[:, i] = inverse_transform_one(s, transformers)
         score = float(np.abs(X[:, i] - X[:, i - 1]).mean())
         print('Mean absolute error : {:.3f}'.format(score))
         if score == 0:
@@ -171,6 +174,10 @@ def _report_image_features(cb):
     for layer in model.layers:
         if hasattr(layer, 'W'):
             W = layer.W.get_value()
+            # this can happen with input is discretized
+            # into a number of colors. in that case the
+            # color channel can be any integer. ignore that
+            # case.
             if model.input_shape[1:] not in (1, 3):
                 continue
             try:

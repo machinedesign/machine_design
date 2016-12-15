@@ -43,6 +43,8 @@ class Standardize:
     def __init__(self, axis=0, eps=EPS):
         self.mean_ = None
         self.std_ = None
+        self.input_shape_ = None
+        self.output_shape_ = None
         self.n_ = 0
         self._sum = 0
         self._sum_sqr = 0
@@ -68,7 +70,9 @@ class Standardize:
         self._sum_sqr += (X**2).sum(axis=0)
         self.mean_ = self._sum / self.n_
         self.std_ = np.sqrt(self._sum_sqr / self.n_ - self.mean_ ** 2)
-
+        if not self.input_shape and not self.output_shape:
+            self.input_shape_ = X.shape[1:]
+            self.output_shape_ = X.shape[1:]
 
 class ColorDiscretizer:
 
@@ -84,6 +88,9 @@ class ColorDiscretizer:
         X = X.reshape((nb * h * w, nb_colors))
         self._kmeans.partial_fit(X)
         self.centers = self._kmeans.cluster_centers_# (nb_centers, nb_channels)
+        if not self.input_shape and not self.output_shape:
+            self.input_shape_ = X.shape[1:]
+            self.output_shape_ = (self.nb_centers,) + X.shape[2:]
         return self
 
     def transform(self, X):

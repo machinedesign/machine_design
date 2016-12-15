@@ -2,6 +2,7 @@
 This module contains a list of callback classes and some
 helpers used commonly in models.
 """
+from __future__ import print_function
 import numpy as np
 import time
 
@@ -390,7 +391,7 @@ def build_model_checkpoint_callback(params, model_filename='model.pkl'):
         mode='auto' if loss else 'min')
     return callback
 
-def build_lr_schedule_callback(name, params, print=print):
+def build_lr_schedule_callback(name, params, print_func=print):
     """
     Helper to build LearningRateSchedule callback
 
@@ -401,7 +402,7 @@ def build_lr_schedule_callback(name, params, print=print):
     params : dict
         params of lr schedule (refer exactly to `params` in `LearningRateScheduler`)
     """
-    callback = LearningRateScheduler(name=name, params=params, print=print)
+    callback = LearningRateScheduler(name=name, params=params, print_func=print)
     return callback
 
 class BudgetFinishedException(Exception):

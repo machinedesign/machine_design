@@ -78,8 +78,8 @@ def main():
             'name': 'iterative_refinement',
             'params': {
                 'batch_size': 128,
-                'nb_samples': 10,
-                'nb_iter': 10,
+                'nb_samples': 256,
+                'nb_iter': 100,
                 'binarize':{
                     'name': 'none',
                     'params': {

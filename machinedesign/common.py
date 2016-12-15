@@ -40,8 +40,9 @@ class ksparse(Layer):
 
     def call(self, X, mask=None):
         import theano.tensor as T
-        idx = (1 - self.zero_ratio) * X.shape[1]
-        mask = T.argsort(X, axis=1) >= idx
+        idx = T.cast((1 - self.zero_ratio) * X.shape[1], 'int32')
+        theta = X[T.arange(X.shape[0]), T.argsort(X, axis=1)[:, idx]]
+        mask = X > theta[:, None]
         return X * mask
 
 # use this whenever you use load_model of keras load_model(..., custom_objects=custom_objects)

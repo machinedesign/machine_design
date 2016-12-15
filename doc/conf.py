@@ -84,7 +84,7 @@ plot_gallery = True
 master_doc = 'index'
 
 # General information about the project.
-project = u'lightjob'
+project = u'machinedesign'
 copyright = u'2016, Mehdi Cherti'
 
 # The version info for the project you're documenting, acts as replacement for

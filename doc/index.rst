@@ -1,8 +1,6 @@
 Welcome to machinedesign documentation!
 ==================================
 
-lightjob is a lightweight job manager.
-
     .. toctree::
        :maxdepth: 2
 

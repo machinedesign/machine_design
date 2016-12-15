@@ -13,6 +13,8 @@ from ..common import object_to_dict
 from ..common import mkdir_path
 from ..common import minibatcher
 from ..common import WrongModelFamilyException
+from ..common import custom_objects
+from ..viz import reshape_to_images
 from ..viz import grid_of_images_default
 from ..viz import horiz_merge
 from ..callbacks import DoEachEpoch
@@ -27,10 +29,17 @@ def train(params):
     family = params['family']
     if family != 'autoencoder':
         raise WrongModelFamilyException("expected family to be 'autoencoder', got {}".format(family))
+
+    # Callbacks
     report_callbacks = []
     domain_specific = params['report'].get('domain_specific')
-    if domain_specific and 'image_reconstruction' in domain_specific:
-        report_callbacks.append(DoEachEpoch(_report_image_reconstruction))
+    if domain_specific:
+        if 'image_reconstruction' in domain_specific:
+            report_callbacks.append(DoEachEpoch(_report_image_reconstruction))
+        if 'image_features' in domain_specific:
+            report_callbacks.append(DoEachEpoch(_report_image_features))
+
+    # Call training functions
     return train_basic(
         params,
         builders=model_builders,
@@ -39,7 +48,7 @@ def train(params):
         callbacks=report_callbacks)
 
 def load(folder):
-    model = load_model(os.path.join(folder, 'model.h5'))
+    model = load_model(os.path.join(folder, 'model.h5'), custom_objects=custom_objects)
     with open(os.path.join(folder, 'transformers.pkl'), 'rb') as fd:
         transformers = pickle.load(fd)
     model.transformers = transformers
@@ -151,6 +160,25 @@ def _report_image_reconstruction(cb):
     filename = os.path.join(folder, '{:05d}.png'.format(epoch))
     imsave(filename, img)
 
+def _report_image_features(cb):
+    model = cb.model
+    epoch = cb.epoch
+    params = cb.params
+    for layer in model.layers:
+        if hasattr(layer, 'W'):
+            W = layer.W.get_value()
+            try:
+                img = reshape_to_images(W, input_shape=model.input_shape[1:])
+            except ValueError:
+                continue
+            img = grid_of_images_default(img)
+            folder = os.path.join(params['report']['outdir'], 'features_{}'.format(layer.name))
+            mkdir_path(folder)
+            filename = os.path.join(folder, '{:05d}.png'.format(epoch))
+            imsave(filename, img)
+        else:
+            pass
+
 def _get_input_reconstruction_grid(X, X_rec, grid_of_images=grid_of_images_default):
     X = grid_of_images(X)
     X_rec = grid_of_images(X_rec)
@@ -163,8 +191,11 @@ def main():
         'model': {
             'name': 'fully_connected',
             'params':{
-                'fully_connected_nb_hidden_units_list': [10],
-                'fully_connected_activation': 'relu',
+                'fully_connected_nb_hidden_units_list': [100, 100],
+                'fully_connected_activations': [
+                    {'name': 'ksparse', 'params':{'zero_ratio': 0.05}},
+                    {'name': 'ksparse', 'params':{'zero_ratio': 0.05}}
+                ],
                 'output_activation': 'sigmoid'
              }
         },
@@ -188,7 +219,7 @@ def main():
                 'save_best_only': True
             },
             'metrics': ['mean_squared_error'],
-            'domain_specific': ['image_reconstruction']
+            'domain_specific': ['image_reconstruction', 'image_features']
         },
         'optim':{
             'algo': {
@@ -200,10 +231,13 @@ def main():
                 'params': {}
             },
             'early_stopping':{
-                'name': 'none',
-                'params': {}
+                'name': 'basic',
+                'params': {
+                    'patience_loss': 'train_mean_squared_error',
+                    'patience': 5
+                }
             },
-            'max_nb_epochs': 40,
+            'max_nb_epochs': 50,
             'batch_size': 128,
             'pred_batch_size': 128,
             'loss': 'mean_squared_error',
@@ -223,7 +257,7 @@ def main():
                 'nb_samples': 10,
                 'nb_iter': 10,
                 'binarize':{
-                    'name': 'none',
+                    'name': 'binary_threshold',
                     'params': {
                         'is_moving': False,
                         'value': 0.5

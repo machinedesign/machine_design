@@ -133,8 +133,8 @@ def transform(iterator, transformers, col='X'):
     Yields
     ------
 
-    transformed dict after applying the series of Transformer to
-    col.
+    transformed dict after applying the series of
+    Transformer to col.
     """
     for d in iterator:
         for t in transformers:

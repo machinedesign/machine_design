@@ -106,3 +106,20 @@ def grid_of_images(M, border=0, bordercolor=[0.0, 0.0, 0.0], shape=None, normali
     return im
 
 grid_of_images_default = partial(grid_of_images, border=1, bordercolor=(0.3, 0, 0))
+
+def reshape_to_images(x, input_shape):
+    #(examples, w*h*c)
+    if len(x.shape) == 2:
+        if x.shape[0] == np.prod(input_shape):
+            x = x.T
+            x = x.reshape((x.shape[0],) + input_shape)
+            x = x.transpose((0, 2, 3, 1))
+            return x
+        elif x.shape[1] == np.prod(input_shape):
+            x = x.reshape((x.shape[0],) + input_shape)
+            x = x.transpose((0, 2, 3, 1))
+            return x
+        else:
+            raise ValueError('Cant recognize this shape : {}'.format(x.shape))
+    else:
+        raise ValueError('Cant recognize a shape of size : {}'.format(len(x.shape)))

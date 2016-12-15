@@ -171,7 +171,7 @@ def _report_image_features(cb):
                 img = reshape_to_images(W, input_shape=model.input_shape[1:])
             except ValueError:
                 continue
-            img = grid_of_images_default(img)
+            img = grid_of_images_default(img, normalize=True)
             folder = os.path.join(params['report']['outdir'], 'features_{}'.format(layer.name))
             mkdir_path(folder)
             filename = os.path.join(folder, '{:05d}.png'.format(epoch))
@@ -191,10 +191,10 @@ def main():
         'model': {
             'name': 'fully_connected',
             'params':{
-                'fully_connected_nb_hidden_units_list': [10, 10],
+                'fully_connected_nb_hidden_units_list': [1000, 1000],
                 'fully_connected_activations': [
-                    {'name': 'ksparse', 'params':{'zero_ratio': 0.3}},
-                    {'name': 'ksparse', 'params':{'zero_ratio': 0.3}}
+                    {'name': 'ksparse', 'params':{'zero_ratio': 0.1}},
+                    {'name': 'ksparse', 'params':{'zero_ratio': 0.1}}
                 ],
                 'output_activation': 'sigmoid'
              }
@@ -202,9 +202,12 @@ def main():
         'data': {
             'train': {
                 'pipeline':[
-                    {"name": "toy", "params": {"nb": 1000, "w": 8, "h": 8, "pw": 2, "ph": 2, "nb_patches": 2, "random_state": 42}},
-                    {"name": "shuffle", "params": {"random_state": 42}},
+                    {"name": "imagefilelist", "params": {"pattern": "{gametiles}"}},
+                    {"name": "shuffle", "params": {}},
+                    {"name": "imageread", "params": {}},
                     {"name": "normalize_shape", "params": {}},
+                    {"name": "force_rgb", "params": {}},
+                    {"name": "resize", "params": {"shape": [16, 16]}},
                     {"name": "divide_by", "params": {"value": 255}},
                     {"name": "order", "params": {"order": "th"}}
                 ]
@@ -257,10 +260,8 @@ def main():
                 'nb_samples': 10,
                 'nb_iter': 10,
                 'binarize':{
-                    'name': 'binary_threshold',
+                    'name': 'none',
                     'params': {
-                        'is_moving': False,
-                        'value': 0.5
                     }
                 },
                 'noise':{

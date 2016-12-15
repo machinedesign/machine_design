@@ -1,3 +1,8 @@
+import numpy as np
+from skimage.io import imsave
+
+from machinedesign.viz import grid_of_images_default
+
 from machinedesign.autoencoder.interface import train
 from machinedesign.autoencoder.interface import generate
 
@@ -89,6 +94,10 @@ def main():
         }
     }
     generate(params)
+    data = np.load('gen/generated.npz')
+    X = data['generated']
+    img = grid_of_images_default(X)
+    imsave('samples.png', img)
 
 if __name__ == '__main__':
     main()

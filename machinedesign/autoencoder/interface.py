@@ -18,8 +18,8 @@ from ..viz import reshape_to_images
 from ..viz import grid_of_images_default
 from ..viz import horiz_merge
 from ..callbacks import DoEachEpoch
-from ..transformers import transform_one
 from ..transformers import inverse_transform_one
+from ..transformers import transform_one
 from . import model_builders
 
 logging.basicConfig(level=logging.INFO)
@@ -105,7 +105,7 @@ def _iterative_refinement(params, model, folder):
         s = _apply_binarization(binarize_name, binarize_params, s)
         X[:, i] = inverse_transform_one(s, transformers)
         score = float(np.abs(X[:, i] - X[:, i - 1]).mean())
-        print('Mean absolute error : {:.3f}'.format(score))
+        print('Mean absolute error : {:.5f}'.format(score))
         if score == 0:
             print('Stopping at iteration {}/{} because score is 0'.format(i, nb_iter))
             X = X[:, 0:i+1]
@@ -178,7 +178,7 @@ def _report_image_features(cb):
             # into a number of colors. in that case the
             # color channel can be any integer. ignore that
             # case.
-            if model.input_shape[1:] not in (1, 3):
+            if model.input_shape[1] not in (1, 3):
                 continue
             try:
                 img = reshape_to_images(W, input_shape=model.input_shape[1:])

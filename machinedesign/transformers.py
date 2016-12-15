@@ -70,7 +70,7 @@ class Standardize:
         self._sum_sqr += (X**2).sum(axis=0)
         self.mean_ = self._sum / self.n_
         self.std_ = np.sqrt(self._sum_sqr / self.n_ - self.mean_ ** 2)
-        if not self.input_shape and not self.output_shape:
+        if not self.input_shape_ and not self.output_shape_:
             self.input_shape_ = X.shape[1:]
             self.output_shape_ = X.shape[1:]
 
@@ -79,17 +79,21 @@ class ColorDiscretizer:
     def __init__(self, nb_centers=5, batch_size=1000):
         # assume centers has shape (nb_centers, nb_channels)
         self.batch_size = batch_size
+        self.nb_centers = nb_centers
         self._kmeans = MiniBatchKMeans(n_clusters=nb_centers)
+        self.input_shape_ = None
+        self.output_shape_ = None
 
     def partial_fit(self, X):
         # assume X has shape (nb_examples, nb_colors, h, w)
+        input_shape = X.shape
         X = X.transpose((0, 2, 3, 1))
         nb, h, w, nb_colors = X.shape
         X = X.reshape((nb * h * w, nb_colors))
         self._kmeans.partial_fit(X)
         self.centers = self._kmeans.cluster_centers_# (nb_centers, nb_channels)
-        if not self.input_shape and not self.output_shape:
-            self.input_shape_ = X.shape[1:]
+        if not self.input_shape_ and not self.output_shape_:
+            self.input_shape_ = input_shape[1:]
             self.output_shape_ = (self.nb_centers,) + X.shape[2:]
         return self
 

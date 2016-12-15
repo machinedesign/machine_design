@@ -171,7 +171,7 @@ def _report_image_features(cb):
                 img = reshape_to_images(W, input_shape=model.input_shape[1:])
             except ValueError:
                 continue
-            img = grid_of_images_default(img)
+            img = grid_of_images_default(img, normalize=True)
             folder = os.path.join(params['report']['outdir'], 'features_{}'.format(layer.name))
             mkdir_path(folder)
             filename = os.path.join(folder, '{:05d}.png'.format(epoch))

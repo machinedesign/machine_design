@@ -70,7 +70,7 @@ class LearningRateScheduler(Callback):
     params: dict
         parameters of learning rate schedule.
 
-    print: callable(default=print)
+    print_func: callable(default=print)
         function to report changes in learning rate
 
     the following are the definitions and
@@ -115,11 +115,11 @@ class LearningRateScheduler(Callback):
                  by `range`.
     """
     def __init__(self, name='decrease_when_stop_improving',
-                 params=None, print=print):
+                 params=None, print_func=print):
         ""
         self.schedule_params = params if params else {}
         self.name = name
-        self.print = print
+        self.print_func = print
 
     def on_epoch_end(self, epoch, logs={}):
         assert hasattr(self.model.optimizer, 'lr'), \
@@ -162,8 +162,8 @@ class LearningRateScheduler(Callback):
         min_lr = params.get('min_lr', 0)
         new_lr = max(new_lr, min_lr)
         if not np.isclose(new_lr, old_lr):
-            self.print('Learning rate changed.')
-            self.print('prev learning rate : {}, new learning rate : {}'.format(old_lr, new_lr))
+            self.print_func('Learning rate changed.')
+            self.print_func('prev learning rate : {}, new learning rate : {}'.format(old_lr, new_lr))
         K.set_value(self.model.optimizer.lr, new_lr)
         logs['lr'] = new_lr
 

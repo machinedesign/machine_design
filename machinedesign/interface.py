@@ -112,7 +112,7 @@ def train(params, builders={}, inputs='X', outputs='y', logger=logger, callbacks
     loss = get_loss(loss_name)
     model.compile(loss=loss, optimizer=optimizer)
 
-    show_model_info(model, print=logger.info)
+    show_model_info(model, print_func=logger.info)
 
     # Build callbacks
     learning_rate_scheduler = build_lr_schedule_callback(

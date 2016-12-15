@@ -39,3 +39,9 @@ Callbacks
 
 .. automodule:: machinedesign.callbacks
 
+Transformers
+============
+
+.. automodule:: machinedesign.transformers
+
+

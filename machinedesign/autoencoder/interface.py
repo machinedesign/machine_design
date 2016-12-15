@@ -29,10 +29,8 @@ def train(params):
         raise WrongModelFamilyException("expected family to be 'autoencoder', got {}".format(family))
     report_callbacks = []
     domain_specific = params['report'].get('domain_specific')
-    if domain_specific:
-        domain_specific = set(domain_specific)
-        if 'image_reconstruction' in domain_specific:
-            report_callbacks.append(DoEachEpoch(_report_image_reconstruction))
+    if domain_specific and 'image_reconstruction' in domain_specific:
+        report_callbacks.append(DoEachEpoch(_report_image_reconstruction))
     return train_basic(
         params,
         builders=model_builders,
@@ -83,6 +81,8 @@ def _iterative_refinement(params, model, folder):
 
     # Build apply function
     reconstruct = minibatcher(model.predict, batch_size=batch_size)
+
+    # reconstruction loop
     for i in (range(1, nb_iter + 1)):
         print('Iteration {}'.format(i))
         sprev = X[:, i - 1]
@@ -92,7 +92,7 @@ def _iterative_refinement(params, model, folder):
         s = _apply_binarization(binarize_name, binarize_params, s)
         X[:, i] = s
         score = float(np.abs(X[:, i] - X[:, i - 1]).mean())
-        print('Reconstruction error : {:.3f}'.format(score))
+        print('Mean absolute error : {:.3f}'.format(score))
         if score == 0:
             print('Stopping at iteration {}/{} because score is 0'.format(i, nb_iter))
             X = X[:, 0:i+1]

@@ -1,3 +1,4 @@
+from __future__ import print_function
 import os
 import numpy as np
 try:
@@ -112,13 +113,13 @@ def train(params, builders={}, inputs='X', outputs='y', logger=logger, callbacks
     loss = get_loss(loss_name)
     model.compile(loss=loss, optimizer=optimizer)
 
-    show_model_info(model, print=logger.info)
+    show_model_info(model, print_func=logger.info)
 
     # Build callbacks
     learning_rate_scheduler = build_lr_schedule_callback(
         name=lr_schedule_name,
         params=lr_schedule_params,
-        print=logger.debug)
+        print_func=logger.debug)
 
     early_stopping = build_early_stopping_callback(
         name=early_stopping_name,
@@ -181,12 +182,12 @@ def load(folder):
 def generate(params):
     pass
 
-def show_model_info(model, print=print):
-    print('Number of parameters : {}'.format(model.count_params()))
+def show_model_info(model, print_func=print):
+    print_func('Number of parameters : {}'.format(model.count_params()))
     nb = sum(1 for layer in model.layers if hasattr(layer, 'W'))
     nb_W_params = sum(np.prod(layer.W.get_value().shape) for layer in model.layers if hasattr(layer, 'W'))
-    print('Number of weight parameters : {}'.format(nb_W_params))
-    print('Number of learnable layers : {}'.format(nb))
+    print_func('Number of weight parameters : {}'.format(nb_W_params))
+    print_func('Number of learnable layers : {}'.format(nb))
 
 def _update_history(model, logs):
     for k, v in logs.items():

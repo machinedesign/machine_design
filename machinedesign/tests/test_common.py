@@ -1,7 +1,7 @@
 import numpy as np
 from machinedesign.common import minibatcher
 from machinedesign.common import iterate_minibatches
-from machinedesign.common import k_sparse
+from machinedesign.common import ksparse
 
 import keras.backend as K
 
@@ -28,9 +28,9 @@ def test_iterate_minibatches():
     assert list(mb) == [slice(0, 10), slice(10, 20), slice(20, 30), slice(30, 40), slice(40, 50), slice(50, 55)]
 
 def test_k_sparse():
-    act = k_sparse(0.3)
+    act = ksparse(0.3)
     X = K.placeholder(shape=(None, 10))
-    pred = K.function([X], act(X))
+    pred = K.function([X], act.call(X))
     np.random.seed(42)
     nb = 100
     x = np.random.uniform(-1, 1, size=(nb, 10))

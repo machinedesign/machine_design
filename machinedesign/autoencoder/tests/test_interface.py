@@ -11,7 +11,7 @@ params_test = {
         'name': 'fully_connected',
         'params':{
             'fully_connected_nb_hidden_units_list': [10],
-            'fully_connected_activation': 'relu',
+            'fully_connected_activations': ['relu'],
             'output_activation': 'sigmoid'
          }
     },

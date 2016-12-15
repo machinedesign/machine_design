@@ -18,6 +18,7 @@ from ..viz import reshape_to_images
 from ..viz import grid_of_images_default
 from ..viz import horiz_merge
 from ..callbacks import DoEachEpoch
+from ..transformers import inverse_transform_one
 from . import model_builders
 
 logging.basicConfig(level=logging.INFO)
@@ -150,10 +151,13 @@ def _report_image_reconstruction(cb):
     data_iterators = cb.data_iterators
     params = cb.params
     epoch = cb.epoch
+    transformers = cb.transformers
 
-    data = next(data_iterators['train'].flow(batch_size=128))
+    data = next(data_iterators['train'](batch_size=128))
     X = data['X']
     X_rec = model.predict(X)
+    X_rec = inverse_transform_one(X_rec, transformers)
+    X = inverse_transform_one(X, transformers)
     img = _get_input_reconstruction_grid(X, X_rec, grid_of_images=grid_of_images_default)
     folder = os.path.join(params['report']['outdir'], 'recons')
     mkdir_path(folder)
@@ -167,6 +171,8 @@ def _report_image_features(cb):
     for layer in model.layers:
         if hasattr(layer, 'W'):
             W = layer.W.get_value()
+            if model.input_shape[1:] not in (1, 3):
+                continue
             try:
                 img = reshape_to_images(W, input_shape=model.input_shape[1:])
             except ValueError:

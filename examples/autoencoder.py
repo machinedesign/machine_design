@@ -34,6 +34,7 @@ def main():
                 ]
             },
             'transformers':[
+                {'name': 'ColorDiscretizer', 'params':{'nb_centers': 5}}
             ]
         },
         'report':{
@@ -64,7 +65,7 @@ def main():
             'max_nb_epochs': 20,
             'batch_size': 128,
             'pred_batch_size': 128,
-            'loss': 'mean_squared_error',
+            'loss': 'binary_crossentropy',
             'budget_secs': 3600,
             'seed': 42
         },

@@ -24,7 +24,7 @@ custom_objectives = {
 def get_loss(name, objectives=objectives):
     try:
         func = custom_objectives[name]
-    except AttributeError:
+    except KeyError:
         return getattr(objectives, name)
     else:
         return func

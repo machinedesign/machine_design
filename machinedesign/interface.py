@@ -2,6 +2,7 @@ from __future__ import print_function
 import os
 import numpy as np
 import time
+from functools import partial
 try:
     from itertools import imap
 except ImportError:
@@ -15,7 +16,8 @@ from .data import pipeline_load
 from .data import get_nb_samples
 from .data import get_nb_minibatches
 from .data import get_shapes
-from .data import BatchIterator
+from .data import batch_iterator
+from .data import dict_apply
 
 from .callbacks import CallbackContainer
 from .callbacks import BudgetFinishedException
@@ -26,7 +28,7 @@ from .callbacks import build_model_checkpoint_callback
 from .callbacks import build_lr_schedule_callback
 
 from .transformers import make_transformers_pipeline
-from .transformers import transform
+from .transformers import transform_one
 from .transformers import fit_transformers
 
 from . import metrics as metric_functions
@@ -85,9 +87,14 @@ def train(params, builders={}, inputs='X', outputs='y', logger=logger, callbacks
 
     logger.info('Fitting transformers on training data...')
     transformers = make_transformers_pipeline(data['transformers'])
+    def transformers_data_generator():
+        it = pipeline_load(train_pipeline)
+        it = batch_iterator(it, batch_size=batch_size, repeat=False, cols=[inputs])
+        it = imap(lambda d:d[inputs], it)
+        return it
     fit_transformers(
         transformers,
-        lambda: imap(lambda d:d[inputs], pipeline_load(train_pipeline))
+        transformers_data_generator
     )
     # save transformers
     mkdir_path(outdir)
@@ -98,12 +105,16 @@ def train(params, builders={}, inputs='X', outputs='y', logger=logger, callbacks
     iterators = {}
     nb_train_samples = get_nb_samples(train_pipeline)
     nb_minibatches = get_nb_minibatches(nb_train_samples, batch_size)
-    train_data_generator = lambda: transform(pipeline_load(train_pipeline), transformers)
-    train = BatchIterator(train_data_generator, cols=[inputs, outputs])
-    iterators['train'] = train
+    apply_transformers = partial(transform_one, transformers=transformers)
+    def train_data_generator(batch_size=batch_size, repeat=False):
+        it = pipeline_load(train_pipeline)
+        it = batch_iterator(it, batch_size=batch_size, repeat=repeat, cols=[inputs, outputs])
+        it = imap(partial(dict_apply, fn=apply_transformers, cols=[inputs]), it)
+        return it
+    iterators['train'] = train_data_generator
 
     # Build and compile model
-    shapes = get_shapes(next(pipeline_load(train_pipeline)))
+    shapes = get_shapes(next(train_data_generator(batch_size=batch_size, repeat=False)))
     model = _build_model(
         name=model_name,
         params=model_params,
@@ -137,7 +148,7 @@ def train(params, builders={}, inputs='X', outputs='y', logger=logger, callbacks
         for which in ('train',):
             compute_func = _build_compute_func(
                 predict=model.predict,
-                data_generator=lambda: iterators[which].flow(batch_size=pred_batch_size, repeat=False),
+                data_generator=lambda: iterators[which](batch_size=pred_batch_size, repeat=False),
                 metric=metric_func,
                 inputs=inputs,
                 outputs=outputs,
@@ -156,17 +167,18 @@ def train(params, builders={}, inputs='X', outputs='y', logger=logger, callbacks
         cb.model = model
         cb.data_iterators = iterators
         cb.params = params
+        cb.transformers = transformers
     callbacks = CallbackContainer(callbacks)
 
     # Training loop
     callbacks.on_train_begin()
-    train_iterator = train.flow(batch_size=batch_size, repeat=True)
+    train_iterator = train_data_generator(batch_size=batch_size, repeat=True)
     for epoch in range(max_nb_epochs):
         logger.info('Epoch {:05d}...'.format(epoch))
         dt = time.time()
         stats = {}
         callbacks.on_epoch_begin(epoch, logs=stats)
-        for minibatch in range(nb_minibatches):
+        for _ in range(nb_minibatches):
             train_batch = next(train_iterator)
             X, Y = train_batch[inputs], train_batch[outputs]
             model.fit(X, Y, verbose=0)

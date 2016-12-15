@@ -8,6 +8,10 @@ loading the model for the generation phase for instance.
 The Transformer instances follow a scikit-learn like API.
 """
 import numpy as np
+from sklearn.cluster import MiniBatchKMeans
+
+from .data import floatX
+from .data import intX
 
 EPS = 1e-10
 
@@ -65,8 +69,63 @@ class Standardize:
         self.mean_ = self._sum / self.n_
         self.std_ = np.sqrt(self._sum_sqr / self.n_ - self.mean_ ** 2)
 
+
+class ColorDiscretizer:
+
+    def __init__(self, nb_centers=5, batch_size=1000):
+        # assume centers has shape (nb_centers, nb_channels)
+        self.batch_size = batch_size
+        self._kmeans = MiniBatchKMeans(n_clusters=nb_centers)
+
+    def partial_fit(self, X):
+        # assume X has shape (nb_examples, nb_colors, h, w)
+        X = X.transpose((0, 2, 3, 1))
+        nb, h, w, nb_colors = X.shape
+        X = X.reshape((nb * h * w, nb_colors))
+        self._kmeans.partial_fit(X)
+        self.centers = self._kmeans.cluster_centers_# (nb_centers, nb_channels)
+        return self
+
+    def transform(self, X):
+        # assume X has shape (nb_examples, nb_channels, h, w)
+        X = X[:, :, :, :, np.newaxis] #(nb_examples, nb_channels, h, w, 1)
+        centers = self.centers.T # (nb_channels, nb_centers)
+        nb_centers = centers.shape[1]
+        centers = centers[np.newaxis, :, np.newaxis, np.newaxis, :]#(1, nb_channels, 1, 1, nb_centers)
+        outputs = []
+        for i in range(0, len(X), self.batch_size):
+            dist = np.abs(X[i:i + self.batch_size] - centers) # (nb_examples, nb_channels, h, w, nb_centers)
+            dist = dist.sum(axis=1) # (nb_examples, h, w, nb_centers)
+            out = dist.argmin(axis=3) # (nb_examples, h, w)
+            out = _categ(out, D=nb_centers) # (nb_examples, h, w, nb_centers)
+            out = out.transpose((0, 3, 1, 2))# (nb_examples, nb_centers, h, w)
+            outputs.append(out)
+        return np.concatenate(outputs, axis=0)
+
+    def inverse_transform(self, X):
+        # assume X has shape (nb_examples, nb_centers, h, w)
+        X = X.argmax(axis=1)
+        nb, h, w = X.shape
+        X = X.flatten()
+        X = self.centers[X]
+        nb_channels = X.shape[1]
+        X = X.reshape((nb, h, w, nb_channels))
+        X = X.transpose((0, 3, 1, 2))
+        return X # (nb_examples, nb_channels, h, w)
+
+def _categ(X, D=10):
+    X = intX(X)
+    nb = np.prod(X.shape)
+    x = X.flatten()
+    m = np.zeros((nb, D))
+    m[np.arange(nb), x] = 1.
+    m = m.reshape(X.shape + (D,))
+    m = floatX(m)
+    return m
+
 transformer = {
-    'Standardize': Standardize
+    'Standardize': Standardize,
+    'ColorDiscretizer': ColorDiscretizer
 }
 
 def make_transformers_pipeline(transformers):
@@ -115,28 +174,34 @@ def fit_transformers(transformers, iter_generator):
                 X = tp.transform(X)
             t.partial_fit(X)
 
-def transform(iterator, transformers, col='X'):
+def transform(iterator, transformers):
     """
-    transform an iterator with a list of Transformer
+    transform an iterator using a list of Transformer
 
     Parameters
     ----------
 
-    iterator: iterable of dict
+    iterator: iterable of array like
         data to transform
 
     transformers: list of Transformer
 
-    col: str
-        modality to transform
-
     Yields
     ------
 
-    transformed dict after applying the series of
-    Transformer to col.
+    transformed iterator
+
     """
     for d in iterator:
-        for t in transformers:
-            d[col] = t.transform(d[col])
+        d = transform_one(d, transformers)
         yield d
+
+def transform_one(d, transformers):
+    for t in transformers:
+        d = t.transform(d)
+    return d
+
+def inverse_transform_one(d, transformers):
+    for t in transformers[::-1]:
+        d = t.inverse_transform(d)
+    return d

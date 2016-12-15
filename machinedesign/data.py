@@ -21,7 +21,7 @@ __all__ = [
     "get_nb_samples",
     "get_shapes",
     "get_nb_minibatches",
-    "BatchIterator",
+    "batch_iterator",
     "floatX",
 ]
 
@@ -65,7 +65,7 @@ def get_shapes(sample):
 
     dict
     """
-    return {k: v.shape for k, v in sample.items()}
+    return {k: v.shape[1:] for k, v in sample.items()}
 
 def get_nb_minibatches(nb_samples, batch_size):
     """
@@ -76,52 +76,42 @@ def get_nb_minibatches(nb_samples, batch_size):
         return 0
     return (nb_samples // batch_size) + (nb_samples % batch_size > 0)
 
-class BatchIterator(object):
+def batch_iterator(iterator, batch_size=128, repeat=True, cols=['X', 'y']):
     """
-    object used to obtain an iterator of minibatches from a plain iterator of samples
+    returns a version of iterator with minibatches
 
     Parameters
     ----------
 
-    iterator_func: callable
-        callable that returns an iterator of dicts.
-        the keys of the dict are the modalities (e.g `X`, `y`).
-    cols :list
-        list of modalities to use from `iterator_func`
+    iterator : iterable of dict
+        dataset
+    batch_size : int(default=128)
+        size of minibatches
+    repeat: bool
+        if True, `cycle` is applied to the resulting `iterator` so that
+        it repeats.
+    cols: list of str
+        columns to use from the dicts.
+        np.array is applied to those columns to convert
+        them into a numpy array.
+    Returns
+    -------
+
+    iterator of dicts.
+    the keys of the dict are the modalities (e.g `X`, `y`).
+    the nb of examples for the values in the dict are at max `batch_size` (can be less).
+
     """
-
-    def __init__(self, iterator_func, cols=['X', 'y']):
-        self.iterator_func = iterator_func
-        self.cols = cols
-
-    def flow(self, batch_size=128, repeat=True):
-        """
-        returns a fresh iterator of minibatches
-
-        Parameters
-        ----------
-
-        batch_size : int(default=128)
-            size of minibatches
-        repeat: bool
-            if True, `cycle` is applied to the resulting `iterator` so that
-            it repeats.
-
-        Returns
-        -------
-
-        iterator of dicts.
-        the keys of the dict are the modalities (e.g `X`, `y`).
-        the nb of examples for the values in the dict are at max `batch_size` (can be less).
-        """
-        iterator = self.iterator_func()
-        iterator = minibatch(iterator, batch_size=batch_size)
-        iterator = expand_dict(iterator)
-        iterator = imap(partial(dict_apply, fn=floatX, cols=self.cols), iterator)
-        iterator = imap(lambda data: {c: data[c] for c in self.cols}, iterator)
-        if repeat:
-            iterator = cycle(iterator)
-        return iterator
+    iterator = minibatch(iterator, batch_size=batch_size)
+    iterator = expand_dict(iterator)
+    iterator = imap(partial(dict_apply, fn=floatX, cols=cols), iterator)
+    iterator = imap(lambda data: {c: data[c] for c in cols}, iterator)
+    if repeat:
+        iterator = cycle(iterator)
+    return iterator
 
 def floatX(X):
     return np.array(X).astype('float32')
+
+def intX(X):
+    return X.astype(np.int32)

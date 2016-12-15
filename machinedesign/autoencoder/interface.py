@@ -191,10 +191,10 @@ def main():
         'model': {
             'name': 'fully_connected',
             'params':{
-                'fully_connected_nb_hidden_units_list': [100, 100],
+                'fully_connected_nb_hidden_units_list': [10, 10],
                 'fully_connected_activations': [
-                    {'name': 'ksparse', 'params':{'zero_ratio': 0.05}},
-                    {'name': 'ksparse', 'params':{'zero_ratio': 0.05}}
+                    {'name': 'ksparse', 'params':{'zero_ratio': 0.3}},
+                    {'name': 'ksparse', 'params':{'zero_ratio': 0.3}}
                 ],
                 'output_activation': 'sigmoid'
              }
@@ -202,7 +202,7 @@ def main():
         'data': {
             'train': {
                 'pipeline':[
-                    {"name": "toy", "params": {"nb": 10000, "w": 8, "h": 8, "pw": 2, "ph": 2, "nb_patches": 2, "random_state": 42}},
+                    {"name": "toy", "params": {"nb": 1000, "w": 8, "h": 8, "pw": 2, "ph": 2, "nb_patches": 2, "random_state": 42}},
                     {"name": "shuffle", "params": {"random_state": 42}},
                     {"name": "normalize_shape", "params": {}},
                     {"name": "divide_by", "params": {"value": 255}},
@@ -237,7 +237,7 @@ def main():
                     'patience': 5
                 }
             },
-            'max_nb_epochs': 50,
+            'max_nb_epochs': 500,
             'batch_size': 128,
             'pred_batch_size': 128,
             'loss': 'mean_squared_error',

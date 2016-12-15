@@ -1,6 +1,7 @@
 from __future__ import print_function
 import os
 import numpy as np
+import time
 try:
     from itertools import imap
 except ImportError:
@@ -162,6 +163,7 @@ def train(params, builders={}, inputs='X', outputs='y', logger=logger, callbacks
     train_iterator = train.flow(batch_size=batch_size, repeat=True)
     for epoch in range(max_nb_epochs):
         logger.info('Epoch {:05d}...'.format(epoch))
+        dt = time.time()
         stats = {}
         callbacks.on_epoch_begin(epoch, logs=stats)
         for minibatch in range(nb_minibatches):
@@ -175,6 +177,7 @@ def train(params, builders={}, inputs='X', outputs='y', logger=logger, callbacks
             break
         for k, v in stats.items():
             logger.info('{}={:.4f}'.format(k, v))
+        logger.info('elapsed time : {:.3f}s'.format(time.time() - dt))
         _update_history(model, logs=stats)
     return model
 

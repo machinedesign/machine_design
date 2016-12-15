@@ -2,11 +2,11 @@
 This module contains some common functions used in models
 """
 import os
-
 import numpy as np
 
 from keras.layers import Activation
 from keras.layers import Dense
+from keras.layers import Layer
 from keras import optimizers
 
 __all__ =[
@@ -18,10 +18,50 @@ __all__ =[
     "mkdir_path"
 ]
 
-def activation_function(name):
-    return Activation(name)
 
-def fully_connected_layers(x, nb_hidden_units, activation, init='glorot_uniform'):
+class ksparse(Layer):
+
+    #TODO make it compatible with tensorflow (only works with theano)
+    """
+    For each example, sort activations, keep only a proportion of 1-zero_ratio from the biggest activations,
+    that rest is zeroed out (a proportion of zero_ratio is zeroed out).
+    Only for fully connected layers.
+    Corresponds to ksparse autoencoders in [1].
+
+    References
+    ----------
+
+    [1] Makhzani, A., & Frey, B. (2013). k-Sparse Autoencoders. arXiv preprint arXiv:1312.5663.
+
+    """
+    def __init__(self, zero_ratio=0,  **kwargs):
+        super(ksparse, self).__init__(**kwargs)
+        self.zero_ratio = zero_ratio
+
+    def call(self, X, mask=None):
+        import theano.tensor as T
+        idx = (1 - self.zero_ratio) * X.shape[1]
+        mask = T.argsort(X, axis=1) >= idx
+        return X * mask
+
+# use this whenever you use load_model of keras load_model(..., custom_objects=custom_objects)
+# to take into account the new defined layers when loading
+custom_objects = {
+    'ksparse': ksparse
+}
+
+def activation_function(name):
+    if isinstance(name, dict):
+        act = name
+        name, params = act['name'], act['params']
+        if name == 'ksparse':
+            return ksparse(**params)
+        else:
+            raise ValueError('Unknown activation function : {}'.format(name))
+    else:
+        return Activation(name)
+
+def fully_connected_layers(x, nb_hidden_units, activations, init='glorot_uniform'):
     """
     Apply a stack of fully connected layers to a layer `x`
 
@@ -32,12 +72,19 @@ def fully_connected_layers(x, nb_hidden_units, activation, init='glorot_uniform'
         keras layer
     nb_hidden_units : list of int
         number of hidden units
-    activation : str
-        activation function, obtained using `activation_function`
+    activations : str
+        list of activation functions for each layer
+        (should be the same size than nb_hidden_units)
+
+    Returns
+    -------
+
+    keras layer
     """
-    for nb_hidden in nb_hidden_units:
+    assert len(activations) == len(nb_hidden_units)
+    for nb_hidden, act in zip(nb_hidden_units, activations):
         x = Dense(nb_hidden, init=init)(x)
-        x = activation_function(activation)(x)
+        x = activation_function(act)(x)
     return x
 
 def get_optimizer(name):

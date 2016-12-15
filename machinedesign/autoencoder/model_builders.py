@@ -14,12 +14,12 @@ def fully_connected(params, shapes):
     output_shape = shapes['X']
     output_shape_flat = np.prod(output_shape)
     nb_hidden_units = params['fully_connected_nb_hidden_units_list']
-    hidden_activation = params['fully_connected_activation']
+    hidden_activations = params['fully_connected_activations']
     output_activation = params['output_activation']
     x = Input(input_shape)
     inp = x
     x = Flatten()(x)
-    x = fully_connected_layers(x, nb_hidden_units, hidden_activation)
+    x = fully_connected_layers(x, nb_hidden_units, hidden_activations)
     x = Dense(output_shape_flat, init='glorot_uniform')(x)
     x = Reshape(output_shape)(x)
     x = activation_function(output_activation)(x)

@@ -37,6 +37,14 @@ class CallbackContainer(Callback):
     def __init__(self, callbacks):
         self.callbacks = callbacks
 
+    def on_train_begin(self, logs={}):
+        for cb in self.callbacks:
+            cb.on_train_begin(logs)
+
+    def on_train_end(self, logs={}):
+        for cb in self.callbacks:
+            cb.on_train_ends(logs)
+
     def on_epoch_begin(self, epoch, logs={}):
         for cb in self.callbacks:
             cb.on_epoch_begin(epoch, logs)

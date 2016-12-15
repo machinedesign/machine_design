@@ -97,8 +97,8 @@ def train(params, builders={}, inputs='X', outputs='y', logger=logger, callbacks
     iterators = {}
     nb_train_samples = get_nb_samples(train_pipeline)
     nb_minibatches = get_nb_minibatches(nb_train_samples, batch_size)
-    train_generator = lambda: transform(pipeline_load(train_pipeline), transformers)
-    train = BatchIterator(train_generator, cols=[inputs, outputs])
+    train_data_generator = lambda: transform(pipeline_load(train_pipeline), transformers)
+    train = BatchIterator(train_data_generator, cols=[inputs, outputs])
     iterators['train'] = train
 
     # Build and compile model
@@ -158,6 +158,7 @@ def train(params, builders={}, inputs='X', outputs='y', logger=logger, callbacks
     callbacks = CallbackContainer(callbacks)
 
     # Training loop
+    callbacks.on_train_begin()
     train_iterator = train.flow(batch_size=batch_size, repeat=True)
     for epoch in range(max_nb_epochs):
         logger.info('Epoch {:05d}...'.format(epoch))
@@ -170,6 +171,7 @@ def train(params, builders={}, inputs='X', outputs='y', logger=logger, callbacks
         try:
             callbacks.on_epoch_end(epoch, logs=stats)
         except BudgetFinishedException:
+            logger.info('Budget finished. Stop.')
             break
         for k, v in stats.items():
             logger.info('{}={:.4f}'.format(k, v))

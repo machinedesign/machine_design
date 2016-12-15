@@ -179,6 +179,9 @@ def train(params, builders={}, inputs='X', outputs='y', logger=logger, callbacks
             logger.info('{}={:.4f}'.format(k, v))
         logger.info('elapsed time : {:.3f}s'.format(time.time() - dt))
         _update_history(model, logs=stats)
+        if model.stop_training: # happens when early stopping
+            logger.info('Early stopping.')
+            break
     return model
 
 def load(folder):

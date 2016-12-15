@@ -45,6 +45,11 @@ class ksparse(Layer):
         mask = X > theta[:, None]
         return X * mask
 
+    def get_config(self):
+        config = {'zero_ratio': self.zero_ratio}
+        base_config = super(ksparse, self).get_config()
+        return dict(list(base_config.items()) + list(config.items()))
+
 # use this whenever you use load_model of keras load_model(..., custom_objects=custom_objects)
 # to take into account the new defined layers when loading
 custom_objects = {

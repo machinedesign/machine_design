@@ -41,7 +41,8 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 __all__ = [
-    "train"
+    "train",
+    "show_model_info"
 ]
 
 def train(params, builders={}, inputs='X', outputs='y', logger=logger, callbacks=[]):

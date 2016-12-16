@@ -12,14 +12,13 @@ from ..interface import train as train_basic
 from ..common import object_to_dict
 from ..common import mkdir_path
 from ..common import minibatcher
-from ..common import WrongModelFamilyException
+from ..common import check_family_or_exception
 from ..common import custom_objects
 from ..viz import reshape_to_images
 from ..viz import grid_of_images_default
 from ..viz import horiz_merge
 from ..callbacks import DoEachEpoch
 from ..transformers import inverse_transform_one
-from ..transformers import transform_one
 from . import model_builders
 
 logging.basicConfig(level=logging.INFO)
@@ -28,10 +27,7 @@ logger = logging.getLogger(__name__)
 model_builders = object_to_dict(model_builders)
 
 def train(params):
-    family = params['family']
-    if family != 'autoencoder':
-        raise WrongModelFamilyException("expected family to be 'autoencoder', got {}".format(family))
-
+    check_family_or_exception(params['family'], 'autoencoder')
     # Callbacks
     report_callbacks = []
     domain_specific = params['report'].get('domain_specific')
@@ -40,7 +36,6 @@ def train(params):
             report_callbacks.append(DoEachEpoch(_report_image_reconstruction))
         if 'image_features' in domain_specific:
             report_callbacks.append(DoEachEpoch(_report_image_features))
-
     # Call training functions
     return train_basic(
         params,

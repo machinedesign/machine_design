@@ -38,6 +38,14 @@ class Standardize:
         current estimate of std of features
     n_ : int
         number of calls to partial_fit used to compute the current estimates
+    input_shape_ : tuple
+        expected shape of inputs to `transform`.
+        the number of examples first axis is excluded from
+        the shape.
+    output_shape_ : tuple
+        expected shape of inputs to `inverse_transform`.
+        the number of examples first axis is excluded from
+        the shape.
     """
 
     def __init__(self, axis=0, eps=EPS):
@@ -75,7 +83,38 @@ class Standardize:
             self.output_shape_ = X.shape[1:]
 
 class ColorDiscretizer:
+    """
+    Color discretizer transformer.
+    Used to discretize the colors of a dataset of images with k-means.
+    The expected shape of inputs is (nb_examples, nb_colors, h, w)
+    where nb_colors is 1 or 3.
+    The shape after transformation is (nb_examples, nb_centers, h, w).
+    which is a one-hot representation of the data. Only one of the centers
+    is one, the others are zero.
 
+    Parameters
+    ----------
+
+    nb_centers: int
+        Size of the 'palette' after discretization
+        (corresponding to the number of centers of k-means applied to colors)
+    batch_size: int
+        size of the batch when using transform
+        (not sure if this is needed anymore)
+
+    Attributes
+    ----------
+
+    input_shape_ : tuple
+        expected shape of inputs to `transform`.
+        the number of examples first axis is excluded from
+        the shape.
+    output_shape_ : tuple
+        expected shape of inputs to `inverse_transform`.
+        the number of examples first axis is excluded from
+        the shape.
+
+    """
     def __init__(self, nb_centers=5, batch_size=1000):
         # assume centers has shape (nb_centers, nb_channels)
         self.batch_size = batch_size
@@ -83,6 +122,10 @@ class ColorDiscretizer:
         self._kmeans = MiniBatchKMeans(n_clusters=nb_centers)
         self.input_shape_ = None
         self.output_shape_ = None
+
+    def _check_if_fitted(self):
+        assert self.input_shape_ is not None, 'the instance has not been fitted yet'
+        assert self.output_shape_ is not None, 'the instance has not been fitted yet'
 
     def partial_fit(self, X):
         # assume X has shape (nb_examples, nb_colors, h, w)
@@ -98,6 +141,7 @@ class ColorDiscretizer:
         return self
 
     def transform(self, X):
+        self._check_if_fitted()
         # assume X has shape (nb_examples, nb_channels, h, w)
         X = X[:, :, :, :, np.newaxis] #(nb_examples, nb_channels, h, w, 1)
         centers = self.centers.T # (nb_channels, nb_centers)
@@ -108,12 +152,13 @@ class ColorDiscretizer:
             dist = np.abs(X[i:i + self.batch_size] - centers) # (nb_examples, nb_channels, h, w, nb_centers)
             dist = dist.sum(axis=1) # (nb_examples, h, w, nb_centers)
             out = dist.argmin(axis=3) # (nb_examples, h, w)
-            out = _categ(out, D=nb_centers) # (nb_examples, h, w, nb_centers)
+            out = onehot(out, D=nb_centers) # (nb_examples, h, w, nb_centers)
             out = out.transpose((0, 3, 1, 2))# (nb_examples, nb_centers, h, w)
             outputs.append(out)
         return np.concatenate(outputs, axis=0)
 
     def inverse_transform(self, X):
+        self._check_if_fitted()
         # assume X has shape (nb_examples, nb_centers, h, w)
         X = X.argmax(axis=1)
         nb, h, w = X.shape
@@ -124,7 +169,27 @@ class ColorDiscretizer:
         X = X.transpose((0, 3, 1, 2))
         return X # (nb_examples, nb_channels, h, w)
 
-def _categ(X, D=10):
+def onehot(X, D=10):
+    """
+    Converts a numpy array of integers to a one-hot
+    representation.
+    `X` can have arbitrary number of dimesions, it just
+    needs to be integers.
+    A new tensor dim is added to `X` with `D` dimensions :
+    the shape of the transformed array is X.shape + (D,)
+    Parameters
+    ----------
+
+    X : numpy array of integers
+
+    D : total number of elements in the one-hot
+        representation.
+
+    Returns
+    -------
+
+    array of shape : X.shape + (D,)
+    """
     X = intX(X)
     nb = np.prod(X.shape)
     x = X.flatten()

@@ -10,7 +10,8 @@ from keras import objectives
 
 __all__ = [
     "mean_squared_error",
-    "get_loss"
+    "get_loss",
+    "custom_objectives"
 ]
 
 def mean_squared_error(y_true, y_pred):

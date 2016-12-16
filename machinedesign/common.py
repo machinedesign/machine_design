@@ -9,13 +9,19 @@ from keras.layers import Dense
 from keras.layers import Layer
 from keras import optimizers
 
-__all__ =[
+__all__ = [
+    "ksparse",
+    "custom_objects",
     "activation_function",
     "fully_connected_layers",
     "get_optimizer",
     "build_optimizer",
     "object_to_dict",
-    "mkdir_path"
+    "mkdir_path",
+    "minibatcher",
+    "iterate_minibatches",
+    "WrongModelFamilyException",
+    "check_family_or_exception"
 ]
 
 
@@ -174,4 +180,15 @@ def iterate_minibatches(nb_inputs, batch_size):
       yield excerpt
 
 class WrongModelFamilyException(ValueError):
+    """
+    raised when the model family is not the expected one
+    model families are kinds of models different enough in
+    their training pipeline that they need to be separated:
+    e.g GAN and autoencoders are distinct families.
+    """
     pass
+
+def check_family_or_exception(family, expected):
+    """if family is not equal to expected, raise WrongModelFamilyException"""
+    if family != expected:
+        raise WrongModelFamilyException("expected family to be '{}', got {}".format(expected, family))

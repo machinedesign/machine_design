@@ -12,6 +12,7 @@ from keras.callbacks import EarlyStopping
 from keras.callbacks import ModelCheckpoint
 
 __all__ = [
+    "Dummy",
     "CallbackContainer",
     "LearningRateScheduler",
     "TimeBudget",

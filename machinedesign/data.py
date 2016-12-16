@@ -23,6 +23,7 @@ __all__ = [
     "get_nb_minibatches",
     "batch_iterator",
     "floatX",
+    "intX"
 ]
 
 operators = image_operators
@@ -88,7 +89,7 @@ def batch_iterator(iterator, batch_size=128, repeat=True, cols=['X', 'y']):
     batch_size : int(default=128)
         size of minibatches
     repeat: bool
-        if True, `cycle` is applied to the resulting `iterator` so that
+        if True, `itertools.cycle` is applied to the resulting `iterator` so that
         it repeats.
     cols: list of str
         columns to use from the dicts.
@@ -98,8 +99,8 @@ def batch_iterator(iterator, batch_size=128, repeat=True, cols=['X', 'y']):
     -------
 
     iterator of dicts.
-    the keys of the dict are the modalities (e.g `X`, `y`).
-    the nb of examples for the values in the dict are at max `batch_size` (can be less).
+    The keys of the dict are `cols` (e.g `X`, `y`).
+    The number of examples for the values in the dict are at max `batch_size` (can be less).
 
     """
     iterator = minibatch(iterator, batch_size=batch_size)

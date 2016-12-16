@@ -166,15 +166,17 @@ def _report_image_features(cb):
     model = cb.model
     epoch = cb.epoch
     params = cb.params
+
+    # this can happen with input is discretized
+    # into a number of colors. in that case the
+    # color channel can be any integer. ignore that
+    # case.
+    if model.input_shape[1] not in (1, 3):
+        return
+
     for layer in model.layers:
         if hasattr(layer, 'W'):
             W = layer.W.get_value()
-            # this can happen with input is discretized
-            # into a number of colors. in that case the
-            # color channel can be any integer. ignore that
-            # case.
-            if model.input_shape[1] not in (1, 3):
-                continue
             try:
                 img = reshape_to_images(W, input_shape=model.input_shape[1:])
             except ValueError:

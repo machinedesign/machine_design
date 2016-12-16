@@ -62,7 +62,7 @@ def convolutional_bottleneck(params, shapes):
         nb_filters=[nb_channels],
         filter_sizes=[output_filter_size],
         activations=[output_activation],
-        border_mode='same')
+        border_mode='full')
     out = x
     model = Model(input=inp, output=out)
     if model.output_shape[1:] != input_shape:

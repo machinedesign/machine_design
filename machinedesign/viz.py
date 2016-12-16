@@ -121,5 +121,15 @@ def reshape_to_images(x, input_shape):
             return x
         else:
             raise ValueError('Cant recognize this shape : {}'.format(x.shape))
+    #(examples, c, h, w)
+    elif len(x.shape) == 4:
+        if x.shape[0] in (1, 3):
+            x = x.transpose((1, 0, 2, 3))
+            return x
+        elif x.shape[1] in (1, 3):
+            return x
+        else:
+            x = x.reshape((x.shape[0]*x.shape[1], 1, x.shape[2], x.shape[3]))
+            return x
     else:
         raise ValueError('Cant recognize a shape of size : {}'.format(len(x.shape)))

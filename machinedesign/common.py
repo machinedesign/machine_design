@@ -26,13 +26,12 @@ __all__ = [
 
 
 class ksparse(Layer):
-
     #TODO make it compatible with tensorflow (only works with theano)
     """
-    For each example, sort activations, keep only a proportion of 1-zero_ratio from the biggest activations,
-    that rest is zeroed out (a proportion of zero_ratio is zeroed out).
-    Only for fully connected layers.
-    Corresponds to ksparse autoencoders in [1].
+    For each example, sort activations, then zerout a proportion of zero_ratio from the smallest activations,
+    that rest (1 - zero_ratio) is kept as it is.
+    Works inly for fully connected layers.
+    Corresponds to k-sparse autoencoders in [1].
 
     References
     ----------
@@ -46,7 +45,7 @@ class ksparse(Layer):
 
     def call(self, X, mask=None):
         import theano.tensor as T
-        idx = T.cast((1 - self.zero_ratio) * X.shape[1], 'int32')
+        idx = T.cast(self.zero_ratio * X.shape[1], 'int32')
         theta = X[T.arange(X.shape[0]), T.argsort(X, axis=1)[:, idx]]
         mask = X > theta[:, None]
         return X * mask

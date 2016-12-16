@@ -28,7 +28,7 @@ def test_iterate_minibatches():
     assert list(mb) == [slice(0, 10), slice(10, 20), slice(20, 30), slice(30, 40), slice(40, 50), slice(50, 55)]
 
 def test_k_sparse():
-    act = ksparse(0.3)
+    act = ksparse(zero_ratio=0.7)
     X = K.placeholder(shape=(None, 10))
     pred = K.function([X], act.call(X))
     np.random.seed(42)

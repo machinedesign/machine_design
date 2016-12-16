@@ -12,10 +12,9 @@ def main():
         'model': {
             'name': 'fully_connected',
             'params':{
-                'fully_connected_nb_hidden_units_list': [1000, 1000],
+                'fully_connected_nb_hidden_units_list': [100],
                 'fully_connected_activations': [
-                    {'name': 'ksparse', 'params':{'zero_ratio': 0.1}},
-                    {'name': 'ksparse', 'params':{'zero_ratio': 0.1}}
+                    'relu'
                 ],
                 'output_activation': 'sigmoid'
              }
@@ -34,7 +33,6 @@ def main():
                 ]
             },
             'transformers':[
-                {'name': 'ColorDiscretizer', 'params':{'nb_centers': 5}}
             ]
         },
         'report':{

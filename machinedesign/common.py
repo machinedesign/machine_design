@@ -59,20 +59,42 @@ class ksparse(Layer):
 
 class winner_take_all_spatial(Layer):
     #TODO make it compatible with tensorflow (only works with theano)
+
+    """
+    Winner take all spatial sparsity defined in [1].
+    it takes a convolutional layer, then for each feature map,
+    keep only nb_active positions with biggets value
+    and zero-out the rest. nb_active=1 corresponds to [1],
+    but it can be bigger.
+
+    Parameters
+    ----------
+
+    nb_active : int
+        number of active positions in each feature map
+
+    References
+    ----------
+    [1] Makhzani, A., & Frey, B. J. (2015). Winner-take-all autoencoders.
+    In Advances in Neural Information Processing Systems (pp. 2791-2799).
+
+    """
     def __init__(self, nb_active=1, **kwargs):
         super(winner_take_all_spatial, self).__init__(**kwargs)
         self.nb_active = nb_active
 
     def call(self, X, mask=None):
         import theano.tensor as T
+        if self.nb_active == 0:
+            return X*0
         shape = X.shape
         X_ = X.reshape((X.shape[0] * X.shape[1], X.shape[2] * X.shape[3]))
-        idx = T.argsort(X_, axis=1)[:, X_.shape[1] - self.nb_active]
+        idx = T.argsort(X_, axis=1)[:, X_.shape[1] - T.minimum(self.nb_active, X_.shape[1])]
         val = X_[T.arange(X_.shape[0]), idx]
         mask = X_ >= val.dimshuffle(0, 'x')
         X_ = X_ * mask
         X_ = X_.reshape(shape)
-        return X
+        return X_
 
     def get_config(self):
         config = {'nb_active': self.nb_active}

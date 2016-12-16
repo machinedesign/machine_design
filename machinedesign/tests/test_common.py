@@ -2,6 +2,7 @@ import numpy as np
 from machinedesign.common import minibatcher
 from machinedesign.common import iterate_minibatches
 from machinedesign.common import ksparse
+from machinedesign.common import winner_take_all_spatial
 
 import keras.backend as K
 
@@ -36,3 +37,14 @@ def test_k_sparse():
     x = np.random.uniform(-1, 1, size=(nb, 10))
     y = pred([x])
     assert (y==0).sum() == 7 * nb
+
+def test_winner_take_all_spatial():
+    for nb_active in (0, 1, 2, 3, 100, 101):
+        act = winner_take_all_spatial(nb_active=nb_active)
+        X = K.placeholder(shape=(None, 1, 10, 10))
+        pred = K.function([X], act.call(X))
+        np.random.seed(42)
+        nb = 100
+        x = np.random.uniform(-1, 1, size=(nb, 1, 10, 10))
+        y = pred([x])
+        assert np.all((y!=0).sum(axis=(2, 3))==min(nb_active, 100))

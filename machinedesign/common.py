@@ -12,6 +12,7 @@ from keras import optimizers
 
 __all__ = [
     "ksparse",
+    "winner_take_all_spatial",
     "custom_objects",
     "activation_function",
     "fully_connected_layers",
@@ -56,18 +57,41 @@ class ksparse(Layer):
         base_config = super(ksparse, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
 
+class winner_take_all_spatial(Layer):
+    #TODO make it compatible with tensorflow (only works with theano)
+    def __init__(self, nb_active=1, **kwargs):
+        super(winner_take_all_spatial, self).__init__(**kwargs)
+        self.nb_active = nb_active
+
+    def call(self, X, mask=None):
+        import theano.tensor as T
+        shape = X.shape
+        X_ = X.reshape((X.shape[0] * X.shape[1], X.shape[2] * X.shape[3]))
+        idx = T.argsort(X_, axis=1)[:, X_.shape[1] - self.nb_active]
+        val = X_[T.arange(X_.shape[0]), idx]
+        mask = X_ >= val.dimshuffle(0, 'x')
+        X_ = X_ * mask
+        X_ = X_.reshape(shape)
+        return X
+
+    def get_config(self):
+        config = {'nb_active': self.nb_active}
+        base_config = super(winner_take_all_spatial, self).get_config()
+        return dict(list(base_config.items()) + list(config.items()))
+
 # use this whenever you use load_model of keras load_model(..., custom_objects=custom_objects)
 # to take into account the new defined layers when loading
 custom_objects = {
-    'ksparse': ksparse
+    'ksparse': ksparse,
+    'winner_take_all_spatial': winner_take_all_spatial
 }
 
 def activation_function(name):
     if isinstance(name, dict):
         act = name
         name, params = act['name'], act['params']
-        if name == 'ksparse':
-            return ksparse(**params)
+        if name in custom_objects:
+            return custom_objects[name](**params)
         else:
             raise ValueError('Unknown activation function : {}'.format(name))
     else:

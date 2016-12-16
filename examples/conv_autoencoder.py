@@ -12,13 +12,13 @@ def main():
         'model': {
             'name': 'convolutional_bottleneck',
             'params':{
-                'conv_encode_nb_filters': [64],
-                'conv_encode_filter_sizes': [5],
-                'conv_encode_activations': ['relu'],
+                'conv_encode_nb_filters': [64, 64, 64],
+                'conv_encode_filter_sizes': [5, 5, 5],
+                'conv_encode_activations': ['relu', 'relu', {'name': 'winner_take_all_spatial', 'params':{'nb_active': 1}}],
 
                 'conv_decode_nb_filters': [64],
-                'conv_decode_filter_sizes': [5],
-                'conv_decode_activations': ['relu'],
+                'conv_decode_filter_sizes': [13],
+                'conv_decode_activations': ['linear'],
 
                 'conv_output_filter_size': 1,
                 'output_activation': 'sigmoid'

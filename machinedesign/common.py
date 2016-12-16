@@ -7,6 +7,7 @@ import numpy as np
 from keras.layers import Activation
 from keras.layers import Dense
 from keras.layers import Layer
+from keras.layers import Convolution2D
 from keras import optimizers
 
 __all__ = [
@@ -79,8 +80,7 @@ def fully_connected_layers(x, nb_hidden_units, activations, init='glorot_uniform
     Parameters
     ----------
 
-    x : layer
-        keras layer
+    x : keras layer
     nb_hidden_units : list of int
         number of hidden units
     activations : str
@@ -95,6 +95,37 @@ def fully_connected_layers(x, nb_hidden_units, activations, init='glorot_uniform
     assert len(activations) == len(nb_hidden_units)
     for nb_hidden, act in zip(nb_hidden_units, activations):
         x = Dense(nb_hidden, init=init)(x)
+        x = activation_function(act)(x)
+    return x
+
+def conv2d_layers(x, nb_filters, filter_sizes, activations, init='glorot_uniform', border_mode='valid'):
+    """
+    Apply a stack of 2D convolutions to a layer `x`
+
+    Parameters
+    ----------
+
+    x : keras layer
+    nb_filters : list of int
+        nb of filters/feature_maps per layer
+    filter_sizes : list of int
+        size of (square) filters per layer
+    activations : str
+        list of activation functions for each layer
+        (should be the same size than nb_hidden_units)
+    init : str
+        init method used in all layers
+    border_mode : str
+        padding type to use in all layers
+
+    Returns
+    -------
+
+    keras layer
+    """
+    assert len(nb_filters) == len(filter_sizes) == len(activations)
+    for nb_filter, filter_size, act in zip(nb_filters, filter_sizes, activations):
+        x = Convolution2D(nb_filter, filter_size, filter_size, init=init, border_mode=border_mode)(x)
         x = activation_function(act)(x)
     return x
 

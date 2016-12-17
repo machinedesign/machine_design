@@ -187,13 +187,15 @@ def train(params, builders={}, inputs='X', outputs='y', logger=logger, callbacks
             callbacks.on_epoch_end(epoch, logs=stats)
         except BudgetFinishedException:
             logger.info('Budget finished. Stop.')
-            break
+            model.stop_training = True
         for k, v in stats.items():
             logger.info('{}={:.4f}'.format(k, v))
         logger.info('elapsed time : {:.3f}s'.format(time.time() - dt))
         _update_history(model, logs=stats)
-        if model.stop_training: # happens when early stopping
-            logger.info('Early stopping.')
+        # the following happens
+        # when early stopping or budget finished
+        if model.stop_training:
+            logger.info('Stopping training.')
             break
     return model
 

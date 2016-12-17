@@ -106,6 +106,8 @@ def train(params, builders={}, inputs='X', outputs='y', logger=logger, callbacks
     iterators = {}
     nb_train_samples = get_nb_samples(train_pipeline)
     nb_minibatches = get_nb_minibatches(nb_train_samples, batch_size)
+    logger.info('Number of training examples : {}'.format(nb_train_samples))
+    logger.info('Number of training minibatches : {}'.format(nb_minibatches))
     apply_transformers = partial(transform_one, transformers=transformers)
     def train_data_generator(batch_size=batch_size, repeat=False):
         it = pipeline_load(train_pipeline)

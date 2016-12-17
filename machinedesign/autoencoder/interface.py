@@ -93,6 +93,7 @@ def _iterative_refinement(params, model, folder):
     reconstruct = minibatcher(model.predict, batch_size=batch_size)
 
     # reconstruction loop
+    previous_score = None
     for i in (range(1, nb_iter + 1)):
         print('Iteration {}'.format(i))
         s = _apply_noise(noise_name, noise_params, s)
@@ -101,10 +102,11 @@ def _iterative_refinement(params, model, folder):
         X[:, i] = inverse_transform_one(s, transformers)
         score = float(np.abs(X[:, i] - X[:, i - 1]).mean())
         print('Mean absolute error : {:.5f}'.format(score))
-        if score == 0:
-            print('Stopping at iteration {}/{} because score is 0'.format(i, nb_iter))
+        if previous_score and score == previous_score:
+            print('Stopping at iteration {}/{} because score did not change'.format(i, nb_iter))
             X = X[:, 0:i+1]
             break
+        previous_score = score
     mkdir_path(folder)
     filename = os.path.join(folder, 'generated.npz')
     np.savez_compressed(filename, full=X, generated=X[:, -1])

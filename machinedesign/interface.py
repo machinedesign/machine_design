@@ -104,6 +104,11 @@ def train(params, builders={}, inputs='X', outputs='y', logger=logger, callbacks
 
     # Load data iterators
     iterators = {}
+    # the number of samples may not be the actual number of samples
+    # because get_nb_samples is only based on the first operator
+    # (maybe force it to pass through everything?)
+    # So instead we can provide the number of sample explicitly
+    # to know how many minibatches we have per epoch
     nb_train_samples = data['train'].get('nb_samples', get_nb_samples(train_pipeline))
     nb_minibatches = get_nb_minibatches(nb_train_samples, batch_size)
     logger.info('Number of training examples : {}'.format(nb_train_samples))

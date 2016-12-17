@@ -136,6 +136,9 @@ def _apply_binarization(name, params, X):
         X = X > value
         X = floatX(X)
         return X
+    elif name == 'onehot':
+        axis = params['axis']
+        return (X == X.max(axis=axis, keepdims=True))
     elif name == 'none':
         return X
     else:

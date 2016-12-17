@@ -2,14 +2,22 @@
 This module contains common functions for data processing
 """
 from __future__ import division
+import os
 from functools import partial
 from itertools import cycle
 try:
     from itertools import imap
 except ImportError:
     imap = map
+try:
+    xrange
+except NameError:
+    irange = range
+else:
+    irange = xrange
 
 import numpy as np
+import h5py
 
 from datakit.pipeline import pipeline_load
 from datakit.image import operators as image_operators
@@ -18,6 +26,7 @@ from datakit.helpers import expand_dict
 from datakit.helpers import dict_apply
 
 __all__ = [
+    "pipeline_load",
     "get_nb_samples",
     "get_shapes",
     "get_nb_minibatches",
@@ -26,7 +35,105 @@ __all__ = [
     "intX"
 ]
 
-operators = image_operators
+def _pipeline_load_numpy(iterator, filename,
+                         cols=['X', 'y'],
+                         start=0, nb=None, shuffle=False,
+                         random_state=None):
+    """
+    Operator to load npy or npz files
+
+    Parameters
+    ----------
+
+    filename : str
+        filename to load
+    cols : list of str
+        columns to retrieve from the npy file
+    start : int(default=0)
+        starting index of the data
+    nb : int(default=None)
+        the size of the data to read.
+        if None, take everything starting
+        from start.
+    shuffle : bool(default=False)
+        whether to shuffle the data
+    random_state : int(default=None)
+    """
+    rng = np.random.RandomState(random_state)
+    filename = os.path.join(os.getenv('DATA_PATH'), filename)
+    data = np.load(filename)
+    if shuffle:
+        indices = np.arange(len(data[cols[0]]))
+        rng.shuffle(indices)
+        data_shuffled = {}
+        for c in cols:
+            data_shuffled[c] = data[c][indices]
+        data = data_shuffled
+    return _iterate(data, start=start, nb=nb, cols=cols)
+
+def _pipeline_load_hdf5(iterator, filename,
+                        cols=['X', 'y'],
+                        start=0, nb=None, buffer_size=128):
+    """
+    Operator to load hdf5 files
+
+    Paramters
+    ---------
+
+    filename : str
+        filename to load
+    cols : list of str
+        columns to retrieve from the npy file
+    start : int(default=0)
+        starting index of the data
+    nb : int(default=None)
+        the size of the data to read.
+        if None, take everything starting
+        from start.
+    buffer_size : int(default=128)
+        read buffer_size rows each time from the file
+    random_state : int(default=None)
+
+    """
+    filename = os.path.join(os.getenv('DATA_PATH'), filename)
+    hf = h5py.File(filename)
+
+    def iter_func():
+        for i in irange(start, start + nb, buffer_size):
+            d = {}
+            for c in cols:
+                d[c] = hf[c][i:i+buffer_size]
+            for n in range(len(d[cols[0]])):
+                p = {}
+                for c in cols:
+                    p[c] = d[c][n]
+                yield p
+    return iter_func()
+
+def _iterate(data, start=0, nb=None, cols=['X', 'y']):
+    it = {}
+    for c in cols:
+        d = data[c]
+        if nb:
+            d = d[start:start+nb]
+        else:
+            d = d[start:]
+        it[c] = iter(d)
+    def iter_func():
+        while True:
+            d = {}
+            for c in cols:
+                d[c] = next(it[c])
+            yield d
+    return iter_func()
+
+load_operators = {
+    'load_numpy': _pipeline_load_numpy,
+    'load_hdf5': _pipeline_load_hdf5
+}
+operators = {}
+operators.update(image_operators)
+operators.update(load_operators)
 pipeline_load = partial(pipeline_load, operators=operators)
 
 def get_nb_samples(pipeline):

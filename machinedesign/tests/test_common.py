@@ -3,6 +3,7 @@ from machinedesign.common import minibatcher
 from machinedesign.common import iterate_minibatches
 from machinedesign.common import ksparse
 from machinedesign.common import winner_take_all_spatial
+from machinedesign.common import axis_softmax
 
 import keras.backend as K
 
@@ -48,3 +49,13 @@ def test_winner_take_all_spatial():
         x = np.random.uniform(-1, 1, size=(nb, 1, 10, 10))
         y = pred([x])
         assert np.all((y!=0).sum(axis=(2, 3))==min(nb_active, 100))
+
+def test_axis_softmax():
+    act = axis_softmax(axis=2)
+    X = K.placeholder(shape=(None, 2, 10, 10))
+    pred = K.function([X], act.call(X))
+    np.random.seed(42)
+    nb = 100
+    x = np.random.uniform(-1, 1, size=(nb, 2, 10, 10))
+    y = pred([x])
+    assert np.allclose(y.sum(axis=2), 1)

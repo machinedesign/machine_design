@@ -9,6 +9,7 @@ from keras.layers import Dense
 from keras.layers import Layer
 from keras.layers import Convolution2D
 from keras import optimizers
+import keras.backend as K
 
 __all__ = [
     "ksparse",
@@ -101,11 +102,38 @@ class winner_take_all_spatial(Layer):
         base_config = super(winner_take_all_spatial, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
 
+class axis_softmax(Layer):
+    """
+    softmax on a given axis
+    keras default softmax only works for matrices and applies to axis=1.
+    this works for any tensor and any axis.
+
+    Parameters
+    ----------
+
+    axis: int(default=1)
+        axis where to do softmax
+    """
+    def __init__(self, axis=1, **kwargs):
+        super(axis_softmax, self).__init__(**kwargs)
+        self.axis = axis
+
+    def call(self, X, mask=None):
+        e_X = K.exp(X - X.max(axis=self.axis, keepdims=True))
+        e_X = e_X / e_X.sum(axis=self.axis, keepdims=True)
+        return e_X
+
+    def get_config(self):
+        config = {'axis': self.axis}
+        base_config = super(axis_softmax, self).get_config()
+        return dict(list(base_config.items()) + list(config.items()))
+
 # use this whenever you use load_model of keras load_model(..., custom_objects=custom_objects)
 # to take into account the new defined layers when loading
 custom_objects = {
     'ksparse': ksparse,
-    'winner_take_all_spatial': winner_take_all_spatial
+    'winner_take_all_spatial': winner_take_all_spatial,
+    'axis_softmax': axis_softmax
 }
 
 def activation_function(name):

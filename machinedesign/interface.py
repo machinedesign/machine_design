@@ -106,6 +106,7 @@ def train(params, builders={}, inputs='X', outputs='y', logger=logger, callbacks
     iterators = {}
     # the number of samples may not be the actual number of samples
     # because get_nb_samples is only based on the first operator
+    # of the datakit pipeline
     # (maybe force it to pass through everything?)
     # So instead we can provide the number of sample explicitly
     # to know how many minibatches we have per epoch

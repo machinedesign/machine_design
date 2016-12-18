@@ -29,7 +29,7 @@ def axis_categorical_crossentropy(y_true, y_pred, axis=1):
     ypr = y_pred.transpose(perm)
     ypr = ypr.reshape((ypr.shape[0], -1))
     ypr = ypr.T
-    return K.categorical_crossentropy(ypr, yt)
+    return K.categorical_crossentropy(ypr, yt).mean()
 
 custom_objectives = {
     'axis_categorical_crossentropy': axis_categorical_crossentropy

@@ -27,5 +27,4 @@ def test_axis_categorical_crossentropy():
     y = y.transpose((0, 3, 1, 2))
 
     l = pred([y, x])
-    assert l.shape == (nb*10*10,)
     assert np.allclose(l, -np.log(0.9))

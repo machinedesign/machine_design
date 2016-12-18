@@ -48,7 +48,7 @@ class ksparse(Layer):
 
     def call(self, X, mask=None):
         import theano.tensor as T
-        idx = T.cast(self.zero_ratio * X.shape[1], 'int32')
+        idx = T.cast(self.zero_ratio * T.cast(X.shape[1], 'float32'), 'int32')
         theta = X[T.arange(X.shape[0]), T.argsort(X, axis=1)[:, idx]]
         mask = X >= theta[:, None]
         return X * mask

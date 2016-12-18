@@ -50,7 +50,7 @@ class ksparse(Layer):
         import theano.tensor as T
         idx = T.cast(self.zero_ratio * X.shape[1], 'int32')
         theta = X[T.arange(X.shape[0]), T.argsort(X, axis=1)[:, idx]]
-        mask = X > theta[:, None]
+        mask = X >= theta[:, None]
         return X * mask
 
     def get_config(self):

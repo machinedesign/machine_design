@@ -219,6 +219,8 @@ def batch_iterator(iterator, batch_size=128, repeat=True, cols=['X', 'y']):
     return iterator
 
 def floatX(X):
+    #TODO should depend on theano.config.floatX
+    # for tensorflow, what is the equivalent thing?
     return np.array(X).astype('float32')
 
 def intX(X):

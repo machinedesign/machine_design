@@ -20,6 +20,27 @@ def mean_squared_error(y_true, y_pred):
     return K.mean(K.square(y_pred - y_true))
 
 def axis_categorical_crossentropy(y_true, y_pred, axis=1):
+    """
+    categorical crossentropy where y_pred can be tensor of any dimension.
+    keras categorical crossentropy only supports y_pred as 2D tensor.
+
+    Paramaters
+    ----------
+
+    y_true : int tensor of order D - 1
+        true labels
+        e.g can be (nb_examples, height width)
+    y_pred : float tensor of order D
+        predicted probabilities.
+        e.g can be (nb_examples, nb_channels, height, widths)
+    axis : int(default=1)
+        axis where the probabilities of categories are defined
+
+    Returns
+    -------
+
+    scalar
+    """
     yt = y_true.argmax(axis=axis) # supposed to be onehot in the axis 'axis'
     yt = yt.flatten()#convert it to a vector
     perm = list(range(y_pred.ndim))

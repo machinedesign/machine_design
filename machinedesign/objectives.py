@@ -57,8 +57,22 @@ custom_objectives = {
 }
 
 def get_loss(name, objectives=objectives):
+    """
+    get loss function given a `name`.
+    If the name is one of the keys defined in `custom_objectives`,
+    then use it. if not, search in `objectives`.
+    if it does not find in either of these, it will return an exception.
+
+    Parameters
+    ----------
+
+    name : str
+        name of the loss function
+    objectives : object
+        object (e.g module) containing objectives (by default its `keras.objectives`)
+    """
     if isinstance(name, dict):
-        #TODO do that
+        #TODO do that (handle params for loss function)
         raise NotImplementedError()
     else:
         try:

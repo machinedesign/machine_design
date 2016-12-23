@@ -107,9 +107,36 @@ def grid_of_images(M, border=0, bordercolor=[0.0, 0.0, 0.0], shape=None, normali
 
 grid_of_images_default = partial(grid_of_images, border=1, bordercolor=(0.3, 0, 0))
 
-def reshape_to_images(x, input_shape):
-    #(examples, w*h*c)
+def reshape_to_images(x, input_shape=None):
+    """
+    a function that takes a numpy array and try to
+    reshape it to an array of images that would
+    be compatible with the function grid_of_images.
+    Two cases are considered.
+
+    if x is a 2D numpy array, it uses input_shape:
+        - x can either be (nb_examples, nb_features) or (nb_features, nb_examples)
+        - nb_features should be prod(input_shape)
+        - the nb_features dim is then expanded to have :
+            (nb_examples, h, w, nb_channels), sorted input_shape shoud
+            be  (h, w, nb_channels).
+
+    if x is a 4D numpy array:
+        - if the first tensor dim is 1 or 3, assume it is color channel, so
+          exchange first and second axis.
+        - if the second tensor dim is 1 or 3, leave x it as it is
+        - otherwise the first and second dim are considered both to be
+          nb_examples, the color will be grayscale, and the third and forth
+          dim will be height and width.
+    Parameters
+    ----------
+
+    x : numpy array
+        input to be reshape
+    input_shape : tuple needed only when x is 2D numpy array
+    """
     if len(x.shape) == 2:
+        assert input_shape is not None
         if x.shape[0] == np.prod(input_shape):
             x = x.T
             x = x.reshape((x.shape[0],) + input_shape)
@@ -121,7 +148,6 @@ def reshape_to_images(x, input_shape):
             return x
         else:
             raise ValueError('Cant recognize this shape : {}'.format(x.shape))
-    #(examples, c, h, w)
     elif len(x.shape) == 4:
         if x.shape[0] in (1, 3):
             x = x.transpose((1, 0, 2, 3))

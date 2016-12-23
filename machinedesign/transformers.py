@@ -273,11 +273,19 @@ def transform(iterator, transformers):
         yield d
 
 def transform_one(d, transformers):
+    """
+    apply a list of transformers to `d`
+    """
     for t in transformers:
         d = t.transform(d)
     return d
 
 def inverse_transform_one(d, transformers):
+    """
+    apply inverse transform of a list of transformers to `d`.
+    because it is inverse transform, transformers is processed
+    backwards.
+    """
     for t in transformers[::-1]:
         d = t.inverse_transform(d)
     return d

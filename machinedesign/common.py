@@ -11,10 +11,12 @@ from keras.layers import Convolution2D
 from keras import optimizers
 import keras.backend as K
 
+from .objectives import custom_objectives
+
 __all__ = [
     "ksparse",
     "winner_take_all_spatial",
-    "custom_objects",
+    "custom_layers",
     "activation_function",
     "fully_connected_layers",
     "get_optimizer",
@@ -128,20 +130,22 @@ class axis_softmax(Layer):
         base_config = super(axis_softmax, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
 
-# use this whenever you use load_model of keras load_model(..., custom_objects=custom_objects)
-# to take into account the new defined layers when loading
-custom_objects = {
+custom_layers = {
     'ksparse': ksparse,
     'winner_take_all_spatial': winner_take_all_spatial,
     'axis_softmax': axis_softmax
 }
 
+custom_objects = {}
+custom_objects.update(custom_objectives)
+custom_objects.update(custom_layers)
+
 def activation_function(name):
     if isinstance(name, dict):
         act = name
         name, params = act['name'], act['params']
-        if name in custom_objects:
-            return custom_objects[name](**params)
+        if name in custom_layers:
+            return custom_layers[name](**params)
         else:
             raise ValueError('Unknown activation function : {}'.format(name))
     else:

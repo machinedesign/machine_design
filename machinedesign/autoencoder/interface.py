@@ -113,8 +113,26 @@ def _iterative_refinement(params, model, folder):
 
 def _apply_noise(name, params, X):
     if name == 'masking':
+        # with proba noise_pr, set X value to zero, e.g
+        # with proba 1 - noise_pr, leave X value as it is
+        # e.g [0.7, 0.1, 0.3, 0.9] becomes [0.7, 0, 0, 0.9]
         noise_pr = params['proba']
         X = (np.random.uniform(size=X.shape) <= (1 - noise_pr)) * X
+        X = floatX(X)
+        return X
+    elif name == 'choice':
+        # applies to some axis and assumes one hot representation
+        # on that selected axis.
+        # with proba noise_pr, switch the category at random, e.g [1 0 0 0] becomes [0 1 0 0]
+        # with proba 1 - noise_pr, leave the category as it is, e.g [1 0 0 0] stays [1 0 0 0]
+        axis = params['axis']
+        noise_pr = params['proba']
+        mask = np.random.uniform(size=X.shape)
+        mask = (mask == mask.max(axis=axis, keepdims=True))
+        shape = list(X.shape)
+        shape[axis] = 1
+        u = np.random.uniform(size=shape) <= (1 - noise_pr)
+        X = X * u  + mask * (1 - u)
         X = floatX(X)
         return X
     elif name == 'none':
@@ -124,15 +142,21 @@ def _apply_noise(name, params, X):
 
 def _apply_binarization(name, params, X):
     if name == 'sample_bernoulli':
+        # replace by one with proba X, 0 with proba (1 - X)
         X = np.random.binomial(n=1, p=X, size=X.shape)
         return X
     elif name == 'binary_threshold':
+        # replace by one if greater than threshold, else by zero
+
+        # "moving" threshold, which will be selected to
+        # guarantee a ratio of ones in X after thresholding
         is_moving = params['is_moving']
         if is_moving:
             one_ratio = params['one_ratio']
             vals = X.flatten()
             vals = vals[np.argsort(vals)]
             value = vals[-int(one_ratio * len(vals)) - 1]
+        # otherwise, use a given fixed threshold
         else:
             value = params['value']
         X = X > value

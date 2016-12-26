@@ -157,9 +157,6 @@ def _apply_binarization(name, params, X, rng=np.random):
         # guarantee a ratio of ones in X after thresholding
         is_moving = params['is_moving']
         if is_moving:
-            # WARNING : does not work when using batch size because X is only
-            # a subset of data
-            # TODO : find a solution to this
             one_ratio = params['one_ratio']
             vals = X.flatten()
             vals = vals[np.argsort(vals)]

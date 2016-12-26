@@ -36,6 +36,8 @@ def convolutional_bottleneck(params, shapes):
     encode_filter_sizes = params['conv_encode_filter_sizes']
     encode_activations = params['conv_encode_activations']
 
+    code_activations = params['code_activations']
+
     decode_nb_filters = params['conv_decode_nb_filters']
     decode_filter_sizes = params['conv_decode_filter_sizes']
     decode_activations = params['conv_decode_activations']
@@ -51,6 +53,8 @@ def convolutional_bottleneck(params, shapes):
         filter_sizes=encode_filter_sizes,
         activations=encode_activations,
         border_mode='valid')
+    for act in code_activations:
+        x = activation_function(act)(x)
     x = conv2d_layers(
         x,
         nb_filters=decode_nb_filters,

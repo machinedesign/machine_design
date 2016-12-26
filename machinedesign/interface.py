@@ -190,7 +190,7 @@ def train(params, builders={}, inputs='X', outputs='y', logger=logger, callbacks
         for _ in range(nb_minibatches):
             train_batch = next(train_iterator)
             X, Y = train_batch[inputs], train_batch[outputs]
-            model.fit(X, Y, verbose=0)
+            model.fit(X, Y, verbose=0, batch_size=len(X), nb_epoch=1)
         try:
             callbacks.on_epoch_end(epoch, logs=stats)
         except BudgetFinishedException:

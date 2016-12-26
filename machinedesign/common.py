@@ -174,7 +174,7 @@ class axis_softmax(Layer):
 custom_layers = {
     'ksparse': ksparse,
     'winner_take_all_spatial': winner_take_all_spatial,
-    'winner_take_all_channel': winner_take_all_channel
+    'winner_take_all_channel': winner_take_all_channel,
     'axis_softmax': axis_softmax
 }
 

@@ -87,12 +87,12 @@ class winner_take_all_spatial(Layer):
         self.nb_active = nb_active
 
     def call(self, X, mask=None):
-        import theano.tensor as T
         if self.nb_active == 0:
             return X*0
-        if self.nb_active == 1:
+        elif self.nb_active == 1:
             return _winner_take_all_one_active(X)
         else:
+            import theano.tensor as T
             shape = X.shape
             X_ = X.reshape((X.shape[0] * X.shape[1], X.shape[2] * X.shape[3]))
             idx = T.argsort(X_, axis=1)[:, X_.shape[1] - T.minimum(self.nb_active, X_.shape[1])]

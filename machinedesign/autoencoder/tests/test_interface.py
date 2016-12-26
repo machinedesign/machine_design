@@ -77,4 +77,4 @@ def test_seed():
     p['optim']['seed'] = 1
     model2 = train(params_test)
     shutil.rmtree('tmp')
-    assert model1.history.history == model2.history.history
+    assert model1.history_stats == model2.history_stats

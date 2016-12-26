@@ -182,6 +182,10 @@ def train(params, builders={}, inputs='X', outputs='y', logger=logger, callbacks
     # Training loop
     callbacks.on_train_begin()
     train_iterator = train_data_generator(batch_size=batch_size, repeat=True)
+    history_stats = []
+
+    model.history_stats = history_stats
+    model.stop_training = False
     for epoch in range(max_nb_epochs):
         logger.info('Epoch {:05d}...'.format(epoch))
         dt = time.time()
@@ -190,16 +194,16 @@ def train(params, builders={}, inputs='X', outputs='y', logger=logger, callbacks
         for _ in range(nb_minibatches):
             train_batch = next(train_iterator)
             X, Y = train_batch[inputs], train_batch[outputs]
-            model.fit(X, Y, verbose=0, batch_size=len(X), nb_epoch=1)
+            model.train_on_batch(X, Y)
         try:
             callbacks.on_epoch_end(epoch, logs=stats)
         except BudgetFinishedException:
             logger.info('Budget finished. Stop.')
             model.stop_training = True
+        history_stats.append(stats)
         for k, v in stats.items():
             logger.info('{}={:.4f}'.format(k, v))
         logger.info('elapsed time : {:.3f}s'.format(time.time() - dt))
-        _update_history(model, logs=stats)
         # the following happens
         # when early stopping or budget finished
         if model.stop_training:

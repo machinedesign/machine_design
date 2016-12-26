@@ -79,6 +79,8 @@ def _iterative_refinement(params, model, folder):
     noise_name = noise['name']
     noise_params = noise['params']
 
+    seed = params['seed']
+
     # Initialize the reconstructions
     transformers = model.transformers
     # shape is shape of inputs before
@@ -86,6 +88,9 @@ def _iterative_refinement(params, model, folder):
     shape = transformers[0].input_shape_ if len(transformers) else model.input_shape[1:]
     X = np.empty((N, nb_iter + 1,) + shape)
     X = floatX(X)
+
+    np.random.seed(seed)
+    
     s = np.random.uniform(size=(N,) + model.input_shape[1:])
     X[:, 0] = inverse_transform_one(s, transformers)
 

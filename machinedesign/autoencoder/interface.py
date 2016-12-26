@@ -90,7 +90,7 @@ def _iterative_refinement(params, model, folder):
     X = floatX(X)
 
     np.random.seed(seed)
-    
+
     s = np.random.uniform(size=(N,) + model.input_shape[1:])
     X[:, 0] = inverse_transform_one(s, transformers)
 
@@ -157,6 +157,9 @@ def _apply_binarization(name, params, X):
         # guarantee a ratio of ones in X after thresholding
         is_moving = params['is_moving']
         if is_moving:
+            # WARNING : does not work when using batch size because X is only
+            # a subset of data
+            # TODO : find a solution to this
             one_ratio = params['one_ratio']
             vals = X.flatten()
             vals = vals[np.argsort(vals)]

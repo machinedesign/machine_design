@@ -117,7 +117,7 @@ class winner_take_all_channel(Layer):
     divide each channel into a grid of sizes stride x stride.
     for each grid, across all channels, only one value (the max value) will be active.
     assumes input of shape (nb_examples, nb_colors, h, w).
-    
+
     Parameters
     ----------
 
@@ -174,6 +174,7 @@ class axis_softmax(Layer):
 custom_layers = {
     'ksparse': ksparse,
     'winner_take_all_spatial': winner_take_all_spatial,
+    'winner_take_all_channel': winner_take_all_channel
     'axis_softmax': axis_softmax
 }
 

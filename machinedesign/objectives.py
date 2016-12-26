@@ -19,7 +19,7 @@ def mean_squared_error(y_true, y_pred):
     """mean squared error (mean over all axes)"""
     y_true = y_true.flatten(2)
     y_pred = y_pred.flatten(2)
-    return objectives.mean_squared_error(y_true, y_pred)
+    return K.mean(K.square(y_pred - y_true), axis=1)
 
 def axis_categorical_crossentropy(y_true, y_pred, axis=1):
     """

@@ -90,19 +90,29 @@ class winner_take_all_spatial(Layer):
         import theano.tensor as T
         if self.nb_active == 0:
             return X*0
-        shape = X.shape
-        X_ = X.reshape((X.shape[0] * X.shape[1], X.shape[2] * X.shape[3]))
-        idx = T.argsort(X_, axis=1)[:, X_.shape[1] - T.minimum(self.nb_active, X_.shape[1])]
-        val = X_[T.arange(X_.shape[0]), idx]
-        mask = X_ >= val.dimshuffle(0, 'x')
-        X_ = X_ * mask
-        X_ = X_.reshape(shape)
-        return X_
+        if self.nb_active == 1:
+            return _winner_take_all_one_active(X)
+        else:
+            shape = X.shape
+            X_ = X.reshape((X.shape[0] * X.shape[1], X.shape[2] * X.shape[3]))
+            idx = T.argsort(X_, axis=1)[:, X_.shape[1] - T.minimum(self.nb_active, X_.shape[1])]
+            val = X_[T.arange(X_.shape[0]), idx]
+            mask = X_ >= val.dimshuffle(0, 'x')
+            X_ = X_ * mask
+            X_ = X_.reshape(shape)
+            return X_
 
     def get_config(self):
         config = {'nb_active': self.nb_active}
         base_config = super(winner_take_all_spatial, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
+
+def _winner_take_all_one_active(X):
+    mask = (_equals(X, K.max(X, axis=(2, 3), keepdims=True))) * 1
+    return X * mask
+
+def _equals(x, y, eps=1e-8):
+    return K.abs(x - y) <= eps
 
 class axis_softmax(Layer):
     """

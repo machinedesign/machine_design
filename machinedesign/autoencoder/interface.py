@@ -89,9 +89,9 @@ def _iterative_refinement(params, model, folder):
     X = np.empty((N, nb_iter + 1,) + shape)
     X = floatX(X)
 
-    np.random.seed(seed)
+    rng = np.random.RandomState(seed)
 
-    s = np.random.uniform(size=(N,) + model.input_shape[1:])
+    s = rng.uniform(size=(N,) + model.input_shape[1:])
     X[:, 0] = inverse_transform_one(s, transformers)
 
     # Build apply function
@@ -101,9 +101,9 @@ def _iterative_refinement(params, model, folder):
     previous_score = None
     for i in (range(1, nb_iter + 1)):
         print('Iteration {}'.format(i))
-        s = _apply_noise(noise_name, noise_params, s)
+        s = _apply_noise(noise_name, noise_params, s, rng=rng)
         s = reconstruct(s)
-        s = _apply_binarization(binarize_name, binarize_params, s)
+        s = _apply_binarization(binarize_name, binarize_params, s, rng=rng)
         X[:, i] = inverse_transform_one(s, transformers)
         score = float(np.abs(X[:, i] - X[:, i - 1]).mean())
         print('Mean absolute error : {:.5f}'.format(score))
@@ -116,13 +116,13 @@ def _iterative_refinement(params, model, folder):
     filename = os.path.join(folder, 'generated.npz')
     np.savez_compressed(filename, full=X, generated=X[:, -1])
 
-def _apply_noise(name, params, X):
+def _apply_noise(name, params, X, rng=np.random):
     if name == 'masking':
         # with proba noise_pr, set X value to zero, e.g
         # with proba 1 - noise_pr, leave X value as it is
         # e.g [0.7, 0.1, 0.3, 0.9] becomes [0.7, 0, 0, 0.9]
         noise_pr = params['proba']
-        X = (np.random.uniform(size=X.shape) <= (1 - noise_pr)) * X
+        X = (rng.uniform(size=X.shape) <= (1 - noise_pr)) * X
         X = floatX(X)
         return X
     elif name == 'choice':
@@ -132,11 +132,11 @@ def _apply_noise(name, params, X):
         # with proba 1 - noise_pr, leave the category as it is, e.g [1 0 0 0] stays [1 0 0 0]
         axis = params['axis']
         noise_pr = params['proba']
-        mask = np.random.uniform(size=X.shape)
+        mask = rng.uniform(size=X.shape)
         mask = (mask == mask.max(axis=axis, keepdims=True))
         shape = list(X.shape)
         shape[axis] = 1
-        u = np.random.uniform(size=shape) <= (1 - noise_pr)
+        u = rng.uniform(size=shape) <= (1 - noise_pr)
         X = X * u  + mask * (1 - u)
         X = floatX(X)
         return X
@@ -145,10 +145,10 @@ def _apply_noise(name, params, X):
     else:
         raise ValueError('Unknown noise method : {}'.format(name))
 
-def _apply_binarization(name, params, X):
+def _apply_binarization(name, params, X, rng=np.random):
     if name == 'sample_bernoulli':
         # replace by one with proba X, 0 with proba (1 - X)
-        X = np.random.binomial(n=1, p=X, size=X.shape)
+        X = rng.binomial(n=1, p=X, size=X.shape)
         return X
     elif name == 'binary_threshold':
         # replace by one if greater than threshold, else by zero

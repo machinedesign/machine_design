@@ -1,6 +1,7 @@
 """
 This module contains some common functions used in models
 """
+from __future__ import division
 import os
 import numpy as np
 
@@ -69,7 +70,7 @@ class winner_take_all_spatial(Layer):
     keep only nb_active positions with biggets value
     and zero-out the rest. nb_active=1 corresponds to [1],
     but it can be bigger.
-    assumes input of shape (nb_examples, nb_colors, h, w).
+    assumes input of shape (nb_examples, nb_features_maps, h, w).
 
     Parameters
     ----------
@@ -116,7 +117,7 @@ class winner_take_all_channel(Layer):
     """
     divide each channel into a grid of sizes stride x stride.
     for each grid, across all channels, only one value (the max value) will be active.
-    assumes input of shape (nb_examples, nb_colors, h, w).
+    assumes input of shape (nb_examples, nb_features_maps, h, w).
 
     Parameters
     ----------
@@ -132,7 +133,7 @@ class winner_take_all_channel(Layer):
     def call(self, X, mask=None):
         B, F = X.shape[0:2]
         w, h = X.shape[2:]
-        X_ = X.reshape((B, F, w / self.stride, self.stride, h / self.stride, self.stride))
+        X_ = X.reshape((B, F, w // self.stride, self.stride, h // self.stride, self.stride))
         mask = _equals(X_, X_.max(axis=(1, 3, 5), keepdims=True)) * 1
         mask = mask.reshape(X.shape)
         return X * mask

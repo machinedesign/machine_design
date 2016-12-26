@@ -69,6 +69,7 @@ class winner_take_all_spatial(Layer):
     keep only nb_active positions with biggets value
     and zero-out the rest. nb_active=1 corresponds to [1],
     but it can be bigger.
+    assumes input of shape (nb_examples, nb_colors, h, w).
 
     Parameters
     ----------
@@ -90,7 +91,7 @@ class winner_take_all_spatial(Layer):
         if self.nb_active == 0:
             return X*0
         elif self.nb_active == 1:
-            return _winner_take_all_one_active(X)
+            return _winner_take_all_spatial_one_active(X)
         else:
             import theano.tensor as T
             shape = X.shape
@@ -107,9 +108,39 @@ class winner_take_all_spatial(Layer):
         base_config = super(winner_take_all_spatial, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
 
-def _winner_take_all_one_active(X):
+def _winner_take_all_spatial_one_active(X):
     mask = (_equals(X, K.max(X, axis=(2, 3), keepdims=True))) * 1
     return X * mask
+
+class winner_take_all_channel(Layer):
+    """
+    divide each channel into a grid of sizes stride x stride.
+    for each grid, across all channels, only one value (the max value) will be active.
+    assumes input of shape (nb_examples, nb_colors, h, w).
+
+    Parameters
+    ----------
+
+    stride : int
+        size of the stride
+
+    """
+    def __init__(self, stride=1, **kwargs):
+        super(winner_take_all_channel, self).__init__(**kwargs)
+        self.stride = stride
+
+    def call(self, X, mask=None):
+        B, F = X.shape[0:2]
+        w, h = X.shape[2:]
+        X_ = X.reshape((B, F, w / self.stride, self.stride, h / self.stride, self.stride))
+        mask = _equals(X_, X_.max(axis=(1, 3, 5), keepdims=True)) * 1
+        mask = mask.reshape(X.shape)
+        return X * mask
+
+    def get_config(self):
+        config = {'stride': self.stride}
+        base_config = super(winner_take_all_channel, self).get_config()
+        return dict(list(base_config.items()) + list(config.items()))
 
 def _equals(x, y, eps=1e-8):
     return K.abs(x - y) <= eps
@@ -143,6 +174,7 @@ class axis_softmax(Layer):
 custom_layers = {
     'ksparse': ksparse,
     'winner_take_all_spatial': winner_take_all_spatial,
+    'winner_take_all_channel': winner_take_all_channel,
     'axis_softmax': axis_softmax
 }
 

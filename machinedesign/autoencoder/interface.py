@@ -79,6 +79,7 @@ def _iterative_refinement(params, model, folder):
     noise_name = noise['name']
     noise_params = noise['params']
 
+    stop_if_unchanged = params['stop_if_unchanged']
     seed = params['seed']
 
     # Initialize the reconstructions
@@ -107,7 +108,7 @@ def _iterative_refinement(params, model, folder):
         X[:, i] = inverse_transform_one(s, transformers)
         score = float(np.abs(X[:, i] - X[:, i - 1]).mean())
         print('Mean absolute error : {:.5f}'.format(score))
-        if previous_score and score == previous_score:
+        if previous_score and score == previous_score and stop_if_unchanged:
             print('Stopping at iteration {}/{} because score did not change'.format(i, nb_iter))
             X = X[:, 0:i+1]
             break

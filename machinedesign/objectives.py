@@ -140,7 +140,11 @@ def get_loss(loss, objectives=objectives):
             func = custom_objectives[name]
         except KeyError:
             func = getattr(objectives, name)
+        orig_name = func.__name__
         func = partial(func, **params)
+        func.__name__ = orig_name
+        # keras requests the __name__ of the func, this
+        # is why I do this.
         return func
     # assume loss is a str
     else:

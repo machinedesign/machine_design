@@ -103,7 +103,7 @@ def loss_sum(y_true, y_pred, terms=[]):
     assert len(terms), 'Please specify `terms` in the parameters of the loss'
     total = 0
     for loss_def in terms:
-        total += get_loss(loss_def['loss']) * loss_def['coef']
+        total += get_loss(loss_def['loss'])(y_true, y_pred) * loss_def['coef']
     return total
 
 custom_objectives = {

@@ -63,8 +63,6 @@ def feature_space_mean_squared_error(y_true, y_pred, model_filename=None, layer=
     assert layer is not None, 'Please specifiy `layer` in the parameters of the loss'
     model = load_model(model_filename)
     # for keras, to avoid "raise MissingInputError(error_msg, variable=r)"
-    for layer in model.layers:
-        layer.trainable=False
     return mean_squared_error(model(y_true), model(y_pred))
 
 def objectness(y_true, y_pred, model_filename=None):
@@ -82,8 +80,8 @@ def objectness(y_true, y_pred, model_filename=None):
     assert model_filename is not None, 'Please specify `model_filename` in the parameters of the loss'
     model = load_model(model_filename)
     # for keras, to avoid "raise MissingInputError(error_msg, variable=r)"
-    for layer in model.layers:
-        layer.trainable=False
+    y_pred = model(y_pred)
+    y_pred = K.in_test_phase(y_pred)
     return _compute_objectness(model(y_pred))
 
 def _compute_objectness(probas):

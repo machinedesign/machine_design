@@ -10,6 +10,7 @@ from functools import partial
 from keras import backend as K
 from keras import objectives
 from keras.models import load_model
+from keras.models import Model
 
 __all__ = [
     "mean_squared_error",
@@ -55,15 +56,16 @@ def axis_categorical_crossentropy(y_true, y_pred, axis=1):
     ypr = y_pred.transpose(perm)
     ypr = ypr.reshape((ypr.shape[0], -1))
     ypr = ypr.T
-    return K.categorical_crossentropy(ypr, yt)
+    return K.categorical_crossentropy(ypr, yt).mean()
 
 def feature_space_mean_squared_error(y_true, y_pred, model_filename=None, layer=None):
     """mean squared error on a feature space defined by a model"""
     assert model_filename is not None, 'Please specify `model_filename` in the parameters of the loss'
     assert layer is not None, 'Please specifiy `layer` in the parameters of the loss'
     model = load_model(model_filename)
-    # for keras, to avoid "raise MissingInputError(error_msg, variable=r)"
-    return mean_squared_error(model(y_true), model(y_pred))
+    model_layer = Model(input=model.layers[0].input, output=model.get_layer(layer).output)
+    model_layer.trainable = False
+    return mean_squared_error(model_layer(y_true), model_layer(y_pred))
 
 def objectness(y_true, y_pred, model_filename=None):
     """
@@ -79,17 +81,17 @@ def objectness(y_true, y_pred, model_filename=None):
     """
     assert model_filename is not None, 'Please specify `model_filename` in the parameters of the loss'
     model = load_model(model_filename)
-    # for keras, to avoid "raise MissingInputError(error_msg, variable=r)"
-    y_pred = model(y_pred)
-    y_pred = K.in_test_phase(y_pred)
-    return _compute_objectness(model(y_pred))
+    model.trainable = False
+    probas = model(y_pred)
+    score = _compute_objectness(probas)
+    return score
 
 def _compute_objectness(probas):
     pr = probas
-    marginal = pr.mean(axis=0)
+    marginal = pr.mean(axis=0, keepdims=True)
     score = pr * K.log(pr / marginal)
     score = score.sum(axis=1)
-    return score
+    return score.mean()
 
 def loss_sum(y_true, y_pred, terms=[]):
     """

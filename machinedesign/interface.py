@@ -129,7 +129,16 @@ def train(params, builders={}, inputs='X', outputs='y', logger=logger, callbacks
         params=model_params,
         shapes=shapes,
         builders=builders)
-
+    #TODO: understand more this
+    # I did this to avoid missinginputerror of K.learning_phase when
+    # using a model in the loss such as objectness. If the model does
+    # not have any layer that differ in train/test phase (such as dropout)
+    # then uses_learning_phase is False, but if the behavior of the model
+    # used in the loss needs uses_learning_phase and it's false, then it
+    # throws this missinginputerror, so I force uses_learning_phase to
+    # True.
+    for lay in model.layers:
+        lay.uses_learning_phase = True
     optimizer = build_optimizer(algo_name, algo_params)
     loss = get_loss(loss_name)
     model.compile(loss=loss, optimizer=optimizer)

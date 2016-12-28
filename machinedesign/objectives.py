@@ -5,6 +5,7 @@ the functions here are used as objective functions (loss), rather
 than metrics, so they are written in terms of keras backend (symbolic),
 rather than numpy.
 """
+import warnings
 from functools import partial
 
 from keras import backend as K
@@ -18,6 +19,9 @@ __all__ = [
     "custom_objectives",
     "axis_categorical_crossentropy"
 ]
+
+def dummy(y_true, y_pred):
+    return (y_pred * 0).mean()
 
 def mean_squared_error(y_true, y_pred):
     """mean squared error (mean over all axes except the first)"""
@@ -60,12 +64,16 @@ def axis_categorical_crossentropy(y_true, y_pred, axis=1):
 
 def feature_space_mean_squared_error(y_true, y_pred, model_filename=None, layer=None):
     """mean squared error on a feature space defined by a model"""
-    assert model_filename is not None, 'Please specify `model_filename` in the parameters of the loss'
-    assert layer is not None, 'Please specifiy `layer` in the parameters of the loss'
+    if model_filename is None or layer is None:
+        warnings.warn('In case you are willing to train this model, please specify `model_filename` and `layer` in the parameters of the loss.'
+                       'In case you will just use the model, it is fine. When loading a model with keras through `load_model` '
+                       'the parameters of the loss functions do not get passsed, so if you are just willing to use the model'
+                       'it is fine', RuntimeWarning)
+        return dummy(y_true, y_pred)
     model = load_model(model_filename)
     model_layer = Model(input=model.layers[0].input, output=model.get_layer(layer).output)
     model_layer.trainable = False
-    return mean_squared_error(model_layer(y_true), model_layer(y_pred))
+    return mean_squared_error(model_layer(y_true), model_layer(y_pred)).mean()
 
 def objectness(y_true, y_pred, model_filename=None):
     """
@@ -79,7 +87,13 @@ def objectness(y_true, y_pred, model_filename=None):
         T.Salimans, I.Goodfellow, W.Zaremba, V.Cheung, A.Radford, X.Chen
         Advances in Neural Information Processing Systems, 2226-2234
     """
-    assert model_filename is not None, 'Please specify `model_filename` in the parameters of the loss'
+    if model_filename is None:
+        warnings.warn('In case you are willing to train this model, please specify `model_filename` in the parameters of the loss.'
+                      'In case you will just use the model, it is fine. When loading a model with keras through `load_model` '
+                      'the parameters of the loss functions do not get passsed, so if you are just willing to use the model'
+                      'it is fine', RuntimeWarning)
+        return dummy(y_true, y_pred)
+
     model = load_model(model_filename)
     model.trainable = False
     probas = model(y_pred)
@@ -106,7 +120,12 @@ def loss_sum(y_true, y_pred, terms=[]):
         See `get_loss` to know when to use a str and when to use a dict.
         'coef' is a float defining the importance given to the loss.
     """
-    assert len(terms), 'Please specify `terms` in the parameters of the loss'
+    if not len(terms):
+        warnings.warn('In case you are willing to train this model, please specify `terms` in the parameters of the loss.'
+                      'In case you will just use the model, it is fine. When loading a model with keras through `load_model` '
+                      'the parameters of the loss functions do not get passsed, so if you are just willing to use the model'
+                      'it is fine', RuntimeWarning)
+        return dummy(y_true, y_pred)
     total = 0
     for loss_def in terms:
         total += get_loss(loss_def['loss'])(y_true, y_pred) * loss_def['coef']
@@ -116,7 +135,8 @@ custom_objectives = {
     'axis_categorical_crossentropy': axis_categorical_crossentropy,
     'feature_space_mean_squared_error': feature_space_mean_squared_error,
     'objectness': objectness,
-    'sum': loss_sum
+    'sum': loss_sum,
+    'loss_sum': loss_sum#TODO fix that
 }
 
 def get_loss(loss, objectives=objectives):

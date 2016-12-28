@@ -9,6 +9,8 @@ from keras.models import Model
 from ..common import activation_function
 from ..common import fully_connected_layers
 from ..common import conv2d_layers
+from ..common import Convolution2D
+from ..common import UpConv2D
 
 def fully_connected(params, shapes):
     input_shape = shapes['X']
@@ -31,6 +33,8 @@ def fully_connected(params, shapes):
 def convolutional_bottleneck(params, shapes):
     input_shape = shapes['X']
     nb_channels = input_shape[0]
+    
+    stride = params['stride']
 
     encode_nb_filters = params['conv_encode_nb_filters']
     encode_filter_sizes = params['conv_encode_filter_sizes']
@@ -47,26 +51,30 @@ def convolutional_bottleneck(params, shapes):
 
     inp = Input(input_shape)
     x = inp
+    # Encode
     x = conv2d_layers(
         x,
         nb_filters=encode_nb_filters,
         filter_sizes=encode_filter_sizes,
         activations=encode_activations,
-        border_mode='valid')
+        border_mode='valid' if stride == 1 else 'same',
+        stride=stride,
+        conv_layer=Convolution2D)
+
+    # Apply code activations (e.g sparsity)
     for act in code_activations:
         x = activation_function(act)(x)
+
+    # Decode back
     x = conv2d_layers(
         x,
-        nb_filters=decode_nb_filters,
-        filter_sizes=decode_filter_sizes,
-        activations=decode_activations,
-        border_mode='full')
-    x = conv2d_layers(
-        x,
-        nb_filters=[nb_channels],
-        filter_sizes=[output_filter_size],
-        activations=[output_activation],
-        border_mode='full')
+        nb_filters=decode_nb_filters + [nb_channels],
+        filter_sizes=decode_filter_sizes + [output_filter_size],
+        activations=decode_activations + [output_activation],
+        border_mode='full' if stride == 1 else 'same',
+        stride=stride,
+        conv_layer=UpConv2D)
+
     out = x
     model = Model(input=inp, output=out)
     if model.output_shape[1:] != input_shape:
@@ -74,3 +82,5 @@ def convolutional_bottleneck(params, shapes):
                  Please fix the parameters of encoder/decoder/both""".format(input_shape, model.output_shape[1:])
         raise ValueError(msg)
     return model
+
+

@@ -172,11 +172,60 @@ class axis_softmax(Layer):
         base_config = super(axis_softmax, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
 
+class UpConv2D(Convolution2D):
+    """
+    This is  a simple up convolution layer that rescales the dimension of a
+    convolutional layer.
+    It only works with border_mode='same', if it is not the case, an
+    exception will be thrown.
+    """
+    def get_output_shape_for(self, input_shape):
+        assert self.border_mode == 'same'
+        N, c, h, w = input_shape
+        h = h * self.subsample[0]
+        w = w * self.subsample[1]
+        input_shape = N, self.nb_filter, h, w
+        return input_shape
+
+    def call(self, x, mask=None):
+        assert self.border_mode == 'same'
+
+        # inspired by : <http://distill.pub/2016/deconv-checkerboard/>
+        # Upsample by just copying pixel values in grids of size subsamplexsubsample
+        sh, sw = self.subsample
+        assert sh == sw
+        s = sh
+        # don't do anything if there is any subsampling
+        if s > 1:
+            #TODO make this comptabile with tensorflow
+            import theano.tensor as T
+            shape = x.shape
+            x = x.reshape((x.shape[0], x.shape[1], x.shape[2], 1, x.shape[3], 1))
+            x = T.ones((shape[0], shape[1], shape[2], s, shape[3], s)) * x
+            x = x.reshape((shape[0], shape[1], shape[2] * s, shape[3] * s))
+
+        # equivalent to keras code except strides=(1, 1) instead
+        # of being equal to self.subsample
+        output = K.conv2d(x, self.W, strides=(1, 1),
+                          border_mode=self.border_mode,
+                          dim_ordering=self.dim_ordering,
+                          filter_shape=self.W_shape)
+        if self.bias:
+            if self.dim_ordering == 'th':
+                output += K.reshape(self.b, (1, self.nb_filter, 1, 1))
+            elif self.dim_ordering == 'tf':
+                output += K.reshape(self.b, (1, 1, 1, self.nb_filter))
+            else:
+                raise Exception('Invalid dim_ordering: ' + self.dim_ordering)
+        output = self.activation(output)
+        return output
+
 custom_layers = {
     'ksparse': ksparse,
     'winner_take_all_spatial': winner_take_all_spatial,
     'winner_take_all_channel': winner_take_all_channel,
-    'axis_softmax': axis_softmax
+    'axis_softmax': axis_softmax,
+    'UpConv2D': UpConv2D
 }
 
 custom_objects = {}
@@ -219,7 +268,9 @@ def fully_connected_layers(x, nb_hidden_units, activations, init='glorot_uniform
         x = activation_function(act)(x)
     return x
 
-def conv2d_layers(x, nb_filters, filter_sizes, activations, init='glorot_uniform', border_mode='valid'):
+def conv2d_layers(x, nb_filters, filter_sizes, activations, 
+                  init='glorot_uniform', border_mode='valid', 
+                  stride=1, conv_layer=Convolution2D):
     """
     Apply a stack of 2D convolutions to a layer `x`
 
@@ -238,6 +289,10 @@ def conv2d_layers(x, nb_filters, filter_sizes, activations, init='glorot_uniform
         init method used in all layers
     border_mode : str
         padding type to use in all layers
+    stride : int
+        stride to use
+    conv_layer : keras layer class
+        keras layer to use from convolution
 
     Returns
     -------
@@ -246,7 +301,7 @@ def conv2d_layers(x, nb_filters, filter_sizes, activations, init='glorot_uniform
     """
     assert len(nb_filters) == len(filter_sizes) == len(activations)
     for nb_filter, filter_size, act in zip(nb_filters, filter_sizes, activations):
-        x = Convolution2D(nb_filter, filter_size, filter_size, init=init, border_mode=border_mode)(x)
+        x = conv_layer(nb_filter, filter_size, filter_size, init=init, border_mode=border_mode, subsample=(stride, stride))(x)
         x = activation_function(act)(x)
     return x
 

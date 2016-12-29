@@ -126,6 +126,9 @@ def _apply_noise(name, params, X, rng=np.random):
         X = (rng.uniform(size=X.shape) <= (1 - noise_pr)) * X
         X = floatX(X)
         return X
+    elif name == 'gaussian':
+        std = params['std']
+        return X + np.random.normal(loc=0, scale=std, size=X.shape)
     elif name == 'choice':
         # applies to some axis and assumes one hot representation
         # on that selected axis.

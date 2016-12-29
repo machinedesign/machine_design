@@ -203,7 +203,6 @@ class UpConv2D(Convolution2D):
             x = x.reshape((x.shape[0], x.shape[1], x.shape[2], 1, x.shape[3], 1))
             x = T.ones((shape[0], shape[1], shape[2], s, shape[3], s)) * x
             x = x.reshape((shape[0], shape[1], shape[2] * s, shape[3] * s))
-
         # equivalent to keras code except strides=(1, 1) instead
         # of being equal to self.subsample
         output = K.conv2d(x, self.W, strides=(1, 1),

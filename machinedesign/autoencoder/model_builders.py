@@ -1,3 +1,5 @@
+from functools import partial
+
 import numpy as np
 
 from keras.layers import Dense
@@ -11,6 +13,7 @@ from ..common import fully_connected_layers
 from ..common import conv2d_layers
 from ..common import Convolution2D
 from ..common import UpConv2D
+from ..common import noise
 
 def fully_connected(params, shapes):
     input_shape = shapes['X']
@@ -19,9 +22,15 @@ def fully_connected(params, shapes):
     nb_hidden_units = params['fully_connected_nb_hidden_units_list']
     hidden_activations = params['fully_connected_activations']
     output_activation = params['output_activation']
+    
+    noise_name = params['input_noise']['name']
+    noise_params = params['input_noise']['params']
+    apply_noise = partial(noise, name=noise_name, params=noise_params)
+
     x = Input(input_shape)
     inp = x
     x = Flatten()(x)
+    x = apply_noise(x)
     x = fully_connected_layers(x, nb_hidden_units, hidden_activations)
     x = Dense(output_shape_flat, init='glorot_uniform')(x)
     x = Reshape(output_shape)(x)
@@ -82,5 +91,3 @@ def convolutional_bottleneck(params, shapes):
                  Please fix the parameters of encoder/decoder/both""".format(input_shape, model.output_shape[1:])
         raise ValueError(msg)
     return model
-
-

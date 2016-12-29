@@ -9,6 +9,7 @@ from keras.layers import Activation
 from keras.layers import Dense
 from keras.layers import Layer
 from keras.layers import Convolution2D
+from keras.layers import GaussianNoise
 from keras import optimizers
 import keras.backend as K
 
@@ -241,6 +242,15 @@ def activation_function(name):
             raise ValueError('Unknown activation function : {}'.format(name))
     else:
         return Activation(name)
+
+def noise(x, name, params):
+    if name == 'gaussian':
+        std = params['std']
+        return GaussianNoise(std)(x)
+    elif name == 'none':
+        return x
+    else:
+        raise ValueError('Unknown noise function')
 
 def fully_connected_layers(x, nb_hidden_units, activations, init='glorot_uniform'):
     """

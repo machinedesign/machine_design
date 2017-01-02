@@ -20,10 +20,10 @@ def mean_squared_error(y_true, y_pred):
     score = ((y_true - y_pred)**2).mean(axis=axes)
     return score
 
-def binary_crossentropy(y_true, y_pred, eps=1e-8):
+def binary_crossentropy(y_true, y_pred, eps=1e-5):
     """ binary cross entropy (mean over all axes except the first)"""
     axes = tuple(range(1, len(y_true.shape)))
-    y_pred = np.clip(y_pred, eps, 1 - eps)
+    y_pred = np.clip(y_pred, eps, 1 - eps)#avoid nans
     score = -(y_true * np.log(y_pred) + (1 - y_true) * np.log(1 - y_pred))
     return score.mean(axis=axes)
 

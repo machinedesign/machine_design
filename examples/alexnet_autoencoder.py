@@ -34,21 +34,21 @@ def alexnet_autoencoder(params, input_shape, output_shape):
     full_model = convnet('alexnet',weights_path=weights_path, heatmap=False)
     names = [layer.name for layer in full_model.layers]
     assert layer in names, 'layer "{}" does not exist, available : {}'.format(layer, names)
-    encoder = Model(input=full_model.layers[0].input, output=full_model.get_layer(layer).output)
+    encoder = Model(input=full_model.layers[1].input, output=full_model.get_layer(layer).output)
     if freeze_encoder:
         for lay in encoder.layers:
             lay.trainable = False
     decoder = model_builders[decoder_name](decoder_params, encoder.output_shape[1:], output_shape)
+    decoder = Model(input=decoder.layers[1].input, output=decoder.layers[-1].output)
     x = Input(input_shape)
     inp = x
     x = Lambda(lambda x:(x * 255.) - np.array([123.68, 116.779, 103.939], dtype='float32')[np.newaxis, :, np.newaxis, np.newaxis],
                output_shape=input_shape)(x)
-    for lay in encoder.layers[1:]:
-        x = lay(x)
-    for lay in decoder.layers[1:]:
-        x = lay(x)
+    x = encoder(x)
+    x = decoder(x)
     out = x
     model = Model(input=inp, output=out)
+    print(model.layers)
     return model
 
 model_builders['alexnet_autoencoder'] = alexnet_autoencoder
@@ -63,13 +63,13 @@ if __name__ == '__main__':
             'architecture': {
                 'name': 'alexnet_autoencoder',
                 'params': {
-                    'layer_name': 'input_1',
+                    'layer_name': 'dense_1',
                     'freeze_encoder': True,
                     'decoder':{
                         'name': 'fully_connected',
                         'params':{
-                            'fully_connected_nb_hidden_units_list': [100],
-                            'fully_connected_activations': [{'name': 'leaky_relu', 'params':{'alpha': 0.3}}],
+                            'fully_connected_nb_hidden_units_list': [1000, 1000],
+                            'fully_connected_activations': [{'name': 'leaky_relu', 'params':{'alpha': 0.3}}] * 2,
                             'output_activation': 'sigmoid',
                             'input_noise':{
                                 'name': 'none',

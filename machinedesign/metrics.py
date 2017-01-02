@@ -10,7 +10,8 @@ except  ImportError:
 
 __all__ = [
     "mean_squared_error",
-    "compute_metric"
+    "compute_metric",
+    "binary_crossentropy"
 ]
 
 def mean_squared_error(y_true, y_pred):
@@ -18,6 +19,12 @@ def mean_squared_error(y_true, y_pred):
     axes = tuple(range(1, len(y_true.shape)))
     score = ((y_true - y_pred)**2).mean(axis=axes)
     return score
+
+def binary_crossentropy(y_true, y_pred):
+    """ binary cross entropy (mean over all axes except the first)"""
+    axes = tuple(range(1, len(y_true.shape)))
+    score = -(y_true * np.log(y_pred) + (1 - y_true) * np.log(1 - y_pred))
+    return score.mean(axis=axes)
 
 def compute_metric(get_true_and_pred, metric):
     """

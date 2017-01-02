@@ -1,25 +1,81 @@
+import os
+import numpy as np
+
+from keras.layers import Input
+from keras.layers import Lambda
+from keras.models import Model
+
+from machinedesign.multi_interface import train
+from machinedesign import model_builders
+from machinedesign.common import object_to_dict
+from machinedesign.callbacks import DoEachEpoch
+from machinedesign.autoencoder.interface import _report_image_reconstruction
+from machinedesign.autoencoder.interface import _report_image_features
+
+from convnetskeras.convnets import convnet
+
+model_builders = object_to_dict(model_builders)
+
+def alexnet_autoencoder(params, input_shape, output_shape):
+    assert input_shape == output_shape
+    layer = params['layer_name']
+    decoder_name = params['decoder']['name']
+    decoder_params = params['decoder']['params']
+    freeze_encoder = params['freeze_encoder']
+
+    assert input_shape == (3, 227, 227), 'for "alexnet" shape should be (3, 227, 227), got : {}'.format(input_shape)
+    weights_path = "{}/.keras/models/alexnet_weights.h5".format(os.getenv('HOME'))
+    assert os.path.exists(weights_path), ('weights path of alexnet {} does not exist, please download manually'
+                                         'from http://files.heuritech.com/weights/alexnet_weights.h5 and put it there '
+                                         '(see https://github.com/heuritech/convnets-keras)'.format(weights_path))
+    full_model = convnet('alexnet',weights_path=weights_path, heatmap=False)
+    names = [layer.name for layer in full_model.layers]
+    assert layer in names, 'layer "{}" does not exist, available : {}'.format(layer, names)
+    encoder = Model(input=full_model.layers[0].input, output=full_model.get_layer(layer).output)
+    if freeze_encoder:
+        for lay in encoder.layers:
+            lay.trainable = False
+    decoder = model_builders[decoder_name](decoder_params, encoder.output_shape[1:], output_shape)
+    x = Input(input_shape)
+    inp = x
+    pixel_mean = np.array([123.68, 116.779, 103.939])[np.newaxis, :, np.newaxis, np.newaxis]
+    pixel_mean = pixel_mean.astype(np.float32)
+    x = Lambda(lambda x:x - pixel_mean)(x)
+    for lay in encoder.layers[1:]:
+        x = lay(x)
+    for lay in decoder.layers[1:]:
+        x = lay(x)
+    out = x
+    model = Model(input=inp, output=out)
+    return model
+
+model_builders['alexnet_autoencoder'] = alexnet_autoencoder
+
 if __name__ == '__main__':
-    from machinedesign.multi_interface import train
-    from machinedesign import model_builders
-    from machinedesign.common import object_to_dict
-    from machinedesign.callbacks import DoEachEpoch
-    from machinedesign.autoencoder.interface import _report_image_reconstruction, _report_image_features
-    model_builders = object_to_dict(model_builders)
+
     models = [
         {
             'name': 'autoencoder',
-            'input_col': 'h',
+            'input_col': 'X',
             'output_col': 'X',
             'architecture': {
-                'name': 'fully_connected',
+                'name': 'alexnet_autoencoder',
                 'params': {
-                    'fully_connected_nb_hidden_units_list': [100],
-                    'fully_connected_activations': [{'name': 'leaky_relu', 'params':{'alpha': 0.3}}],
-                    'output_activation': 'sigmoid',
-                    'input_noise':{
-                        'name': 'none',
-                        'params': {
+                    'layer_name': 'input_1',
+                    'freeze_encoder': True,
+                    'decoder':{
+                        'name': 'fully_connected',
+                        'params':{
+                            'fully_connected_nb_hidden_units_list': [100],
+                            'fully_connected_activations': [{'name': 'leaky_relu', 'params':{'alpha': 0.3}}],
+                            'output_activation': 'sigmoid',
+                            'input_noise':{
+                                'name': 'none',
+                                'params': {
+                                }
+                            }
                         }
+
                     }
                 },
             },
@@ -90,8 +146,6 @@ if __name__ == '__main__':
                 {"name": "resize", "params": {"shape": [227, 227]}},
                 {"name": "divide_by", "params": {"value": 255}},
                 {"name": "order", "params": {"order": "th"}},
-                {"name": "pretrained_transform",
-                 "params": {"model_name": "alexnet", "layer": "dense_1", "input_col": "X", "output_col": "h"}}
             ],
 
         }

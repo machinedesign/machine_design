@@ -58,7 +58,7 @@ def convolutional(params, input_shape, output_shape):
         x = GlobalAveragePooling2D()(x)
     out = x
     model = Model(input=inp, output=out)
-    if model.output_shape[1:] != input_shape:
+    if model.output_shape[1:] != output_shape:
         msg = """Wrong final output shape, expected : {}, got : {}.
                  Please fix the parameters""".format(output_shape, model.output_shape[1:])
         raise ValueError(msg)

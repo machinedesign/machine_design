@@ -17,6 +17,9 @@ from convnetskeras.convnets import convnet
 model_builders = object_to_dict(model_builders)
 
 def alexnet_autoencoder(params, input_shape, output_shape):
+    """
+    WARNING : assumes pixel values are between 0 and 255
+    """
     assert input_shape == output_shape
     layer = params['layer_name']
     decoder_name = params['decoder']['name']
@@ -38,9 +41,8 @@ def alexnet_autoencoder(params, input_shape, output_shape):
     decoder = model_builders[decoder_name](decoder_params, encoder.output_shape[1:], output_shape)
     x = Input(input_shape)
     inp = x
-    pixel_mean = np.array([123.68, 116.779, 103.939])[np.newaxis, :, np.newaxis, np.newaxis]
-    pixel_mean = pixel_mean.astype(np.float32)
-    x = Lambda(lambda x:x - pixel_mean)(x)
+    x = Lambda(lambda x:x - np.array([123.68, 116.779, 103.939], dtype='float32')[np.newaxis, :, np.newaxis, np.newaxis],
+               output_shape=input_shape)(x)
     for lay in encoder.layers[1:]:
         x = lay(x)
     for lay in decoder.layers[1:]:
@@ -144,7 +146,6 @@ if __name__ == '__main__':
                 {"name": "normalize_shape", "params": {}},
                 {"name": "force_rgb", "params": {}},
                 {"name": "resize", "params": {"shape": [227, 227]}},
-                {"name": "divide_by", "params": {"value": 255}},
                 {"name": "order", "params": {"order": "th"}},
             ],
 

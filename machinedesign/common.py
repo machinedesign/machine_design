@@ -4,6 +4,7 @@ This module contains some common functions used in models
 from __future__ import division
 import os
 import numpy as np
+import csv
 
 from keras.layers import Activation
 from keras.layers import Dense
@@ -418,3 +419,23 @@ def show_model_info(model, print_func=print):
     nb_W_params = sum(np.prod(layer.W.get_value().shape) for layer in model.layers if hasattr(layer, 'W'))
     print_func('Number of weight parameters : {}'.format(nb_W_params))
     print_func('Number of learnable layers : {}'.format(nb))
+
+def write_csv(iterable, filename):
+    """
+    write a list of dicts into a csv file
+    (like pandas.to_csv(...) but I didnt want to add that dependency
+     just for that)
+
+    Parameters
+    ----------
+
+    iterable : iterable of dict
+        this will constitute the rows of the csv file.
+        the header will be the keys of the dicts.
+    filename : str
+        filename where to write the content
+    """
+    with open(filename, 'w') as f:
+        writer = csv.DictWriter(f, fieldnames=iterable[0].keys())
+        writer.writeheader()
+        writer.writerows(iterable)

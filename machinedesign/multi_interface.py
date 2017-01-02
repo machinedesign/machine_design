@@ -9,6 +9,7 @@ except ImportError:
 
 from .common import build_optimizer
 from .common import show_model_info
+from .common import write_csv
 
 from .objectives import get_loss
 from .data import pipeline_load
@@ -152,6 +153,26 @@ def train(params, model_builders={}, logger=logger, callbacks=[]):
     return models
 
 def build_data_generator(pipeline, cols='all'):
+    """
+    take a `datakit` pipeline and returns a function that
+    takes batch_size and repeat, and returns an iterator.
+
+    Parameters
+    ----------
+
+    pipeline : list of dict
+        `datakit` pipeline
+    cols : list of str or str
+        if list, list of columns to retrieve from the `datakit` pipeline
+        if str, should be 'all', this will include all the available columns.
+
+    Returns
+    -------
+
+    a function that takes (batch_size, repeat=False) and returns an iterator
+    of dict, where the keys are modalities (e.g `X`, `y`) and the values
+    are data.
+    """
     def _gen(batch_size, repeat=False):
         it = pipeline_load(pipeline)
         it = batch_iterator(it, batch_size=batch_size, repeat=repeat, cols=cols)
@@ -195,21 +216,22 @@ def build_model_and_evaluators_from_spec(spec, col_shapes, builders={},
 
     Parameters
     ----------
-        spec : dict
-            config of the models
-        col_shapes : dict
-            shapes of modalities, keys are modalities (e.g X or y), values are data.
-        builders : dict
-            keys are str, corresponding to type of models, and values are callable
-            that construct keras Model.
-        override_input_shape : tuple or None
-            if input_col is not provided, use `override_input_shape`.
-        override_output_shape : tuple or None
-            if output_col is not provided, use `override_output_shape`.
+    spec : dict
+        config of the models
+    col_shapes : dict
+        shapes of modalities, keys are modalities (e.g X or y), values are data.
+    builders : dict
+        keys are str, corresponding to type of models, and values are callable
+        that construct keras Model.
+    override_input_shape : tuple or None
+        if input_col is not provided, use `override_input_shape`.
+    override_output_shape : tuple or None
+        if output_col is not provided, use `override_output_shape`.
 
     Returns
     -------
-    list of keras Model
+    list of keras Model where each model is augmented with a set
+    of attributes (see above)
     """
     name = spec['name']
     input_col = spec.get('input_col')
@@ -224,7 +246,7 @@ def build_model_and_evaluators_from_spec(spec, col_shapes, builders={},
     input_shape = col_shapes[input_col] if input_col else override_input_shape
     output_shape = col_shapes[output_col] if output_col else override_output_shape
     assert input_shape is not None, 'expected input_shape to be not None'
-    assert output_shape, 'expected output_shape to be not None'
+    assert output_shape is not None, 'expected output_shape to be not None'
 
     model = build_model(
         type=model_type,
@@ -243,7 +265,6 @@ def build_model_and_evaluators_from_spec(spec, col_shapes, builders={},
                 col_shapes=col_shapes,
                 builders=builders,
                 override_output_shape=output_shape)
-
         evaluator.get_real_output = get_real_output
         evaluator.get_fake_output = get_fake_output
         evaluator.get_output_col = lambda d:get_real_output(evaluator.get_input_col(d), backend=np)
@@ -269,11 +290,30 @@ def build_model_and_evaluators_from_spec(spec, col_shapes, builders={},
 
 def build_model(type, params, input_shape, output_shape, builders={}):
     """
-    build a model from a builders dict
+    build a keras Model.
+    Building a keras model requires specifying its `type` and the
+    parameters `params` corresponding to the `type`. The `type` is a
+    str that should exist in the keys of `builders`.`builders` is a
+    mapping from type names to functions that build a keras Model.
+    It is also required to specify `input_shape` and `output_shape`
+    of the model.
 
     Parameters
     ----------
 
+    type : str
+        name of the type of the model
+    params : dict
+        parameters corresponding to the type of model
+    input_shape : tuple
+        shape of the input, starting from the second axis
+        (the first axis is the number of examples and is not specified)
+    output_shape : tuple
+        shape of the output, starting from the second axis
+        (the first axis is the number of examples and is not specified)
+    builders : dict
+        keys are type names, values are functions that build keras Model.
+        (see e.g `autoencoder.model_builders` for examples of builders)
     Returns
     -------
 
@@ -456,10 +496,6 @@ def train_models_and_evaluators_on_batch(models, train_batch):
         Y_fake = model.predict(X)
         for evaluator in model.evaluators:
             train_evaluator_on_batch(evaluator, Y_real, Y_fake)
-            print(evaluator.predict(Y_real).mean())
-            print(evaluator.predict(Y_fake).mean())
-            print('\n')
-
 
 def train_evaluator_on_batch(evaluator, Y_real, Y_fake):
     """
@@ -485,10 +521,3 @@ def callback_trigger(callbacks, event_name, *args, **kwargs):
     """
     for cb in callbacks:
         getattr(cb, event_name)(*args, **kwargs)
-
-def write_csv(iterable, filename):
-    import csv
-    with open(filename, 'w') as f:
-        writer = csv.DictWriter(f, fieldnames=iterable[0].keys())
-        writer.writeheader()
-        writer.writerows(iterable)

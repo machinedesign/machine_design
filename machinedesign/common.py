@@ -222,13 +222,29 @@ class UpConv2D(Convolution2D):
         output = self.activation(output)
         return output
 
+class Normalize(Layer):
+
+    def __init__(self, bias, scale, **kwargs):
+        super(Normalize, self).__init__(**kwargs)
+        self.bias = bias
+        self.scale = scale
+
+    def call(self, X, mask=None):
+        return (X * self.scale) + self.bias
+
+    def get_config(self):
+        config = {'bias': self.bias, 'scale': self.scale}
+        base_config = super(Normalize, self).get_config()
+        return dict(list(base_config.items()) + list(config.items()))
+
 custom_layers = {
     'ksparse': ksparse,
     'winner_take_all_spatial': winner_take_all_spatial,
     'winner_take_all_channel': winner_take_all_channel,
     'axis_softmax': axis_softmax,
     'UpConv2D': UpConv2D,
-    'leaky_relu': LeakyReLU
+    'leaky_relu': LeakyReLU,
+    'Normalize': Normalize
 }
 
 custom_objects = {}

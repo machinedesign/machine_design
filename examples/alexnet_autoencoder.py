@@ -8,6 +8,7 @@ from keras.models import Model
 from machinedesign.multi_interface import train
 from machinedesign import model_builders
 from machinedesign.common import object_to_dict
+from machinedesign.common import Normalize
 from machinedesign.callbacks import DoEachEpoch
 from machinedesign.autoencoder.interface import _report_image_reconstruction
 from machinedesign.autoencoder.interface import _report_image_features
@@ -42,8 +43,8 @@ def alexnet_autoencoder(params, input_shape, output_shape):
     decoder = Model(input=decoder.layers[1].input, output=decoder.layers[-1].output)
     x = Input(input_shape)
     inp = x
-    x = Lambda(lambda x:(x * 255.) - np.array([123.68, 116.779, 103.939], dtype='float32')[np.newaxis, :, np.newaxis, np.newaxis],
-               output_shape=input_shape)(x)
+    pixel_mean = np.array([123.68, 116.779, 103.939], dtype='float32')[np.newaxis, :, np.newaxis, np.newaxis]
+    x = Normalize(scale=255., bias=-pixel_mean)(x)
     x = encoder(x)
     x = decoder(x)
     out = x

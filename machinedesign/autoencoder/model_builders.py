@@ -1,41 +1,11 @@
-from functools import partial
-
-import numpy as np
-
-from keras.layers import Dense
-from keras.layers import Flatten
 from keras.layers import Input
-from keras.layers import Reshape
 from keras.models import Model
 
-from ..common import activation_function
-from ..common import fully_connected_layers
-from ..common import conv2d_layers
-from ..common import Convolution2D
-from ..common import UpConv2D
-from ..common import noise
+from .common import activation_function
+from .common import conv2d_layers
+from .common import Convolution2D
+from .common import UpConv2D
 
-def fully_connected(params, input_shape, output_shape):
-    output_shape_flat = np.prod(output_shape)
-    nb_hidden_units = params['fully_connected_nb_hidden_units_list']
-    hidden_activations = params['fully_connected_activations']
-    output_activation = params['output_activation']
-
-    noise_name = params['input_noise']['name']
-    noise_params = params['input_noise']['params']
-    apply_noise = partial(noise, name=noise_name, params=noise_params)
-
-    x = Input(input_shape)
-    inp = x
-    x = Flatten()(x)
-    x = apply_noise(x)
-    x = fully_connected_layers(x, nb_hidden_units, hidden_activations)
-    x = Dense(output_shape_flat, init='glorot_uniform')(x)
-    x = Reshape(output_shape)(x)
-    x = activation_function(output_activation)(x)
-    out = x
-    model = Model(input=inp, output=out)
-    return model
 
 def convolutional_bottleneck(params, input_shape, output_shape):
     assert input_shape == output_shape

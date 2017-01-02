@@ -19,12 +19,16 @@ from ..viz import grid_of_images_default
 from ..viz import horiz_merge
 from ..callbacks import DoEachEpoch
 from ..transformers import inverse_transform_one
-from . import model_builders
+from .. import model_builders
+from . import model_builders as model_builders_autoencoder
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 model_builders = object_to_dict(model_builders)
+model_builders_autoencoder = object_to_dict(model_builders_autoencoder)
+model_builders.update(model_builders_autoencoder)
+
 
 def train(params):
     check_family_or_exception(params['family'], 'autoencoder')

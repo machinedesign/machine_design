@@ -13,7 +13,7 @@ if __name__ == '__main__':
             'architecture': {
                 'name': 'fully_connected',
                 'params': {
-                    'fully_connected_nb_hidden_units_list': [500],
+                    'fully_connected_nb_hidden_units_list': [100],
                     'fully_connected_activations': [{'name': 'leaky_relu', 'params':{'alpha': 0.3}}],
                     'output_activation': 'sigmoid',
                     'input_noise':{
@@ -31,7 +31,7 @@ if __name__ == '__main__':
                     'architecture': {
                         'name': 'fully_connected',
                         'params': {
-                            'fully_connected_nb_hidden_units_list': [50],
+                            'fully_connected_nb_hidden_units_list': [100],
                             'fully_connected_activations': [{'name': 'leaky_relu', 'params':{'alpha': 0.3}}],
                             'output_activation': 'sigmoid',
                             'input_noise':{
@@ -44,7 +44,7 @@ if __name__ == '__main__':
                     'optimizer':{
                         'name': 'adam',
                         'params':{
-                            'lr': 1e-3
+                            'lr': 0.0002
                         }
                     },
                     'losses': [
@@ -55,26 +55,26 @@ if __name__ == '__main__':
                             'name': 'constant',
                             'params': {}
                         },
-                        'metrics': {'names': ['mean_squared_error'], 'pred_batch_size': 128},
+                        'metrics': {'names': ['binary_crossentropy'], 'pred_batch_size': 128},
                     }
                 }
             ],
             'optimizer':{
                 'name': 'adam',
                 'params':{
-                    'lr': 1e-2
+                    'lr': 0.0002
                 }
             },
             'losses':[
                 {'name': 'binary_crossentropy', 'coef': 1, 'params': {}},
-                {'name': 'discriminator', 'coef': 1, 'params': {}}
+                {'name': 'discriminator', 'coef': 0.01, 'params': {}}
             ],
             'callbacks':{
                 'lr_schedule':{
                     'name': 'constant',
                     'params': {}
                 },
-                'metrics': {'names': ['mean_squared_error'], 'pred_batch_size': 128},
+                'metrics': {'names': ['binary_crossentropy'], 'pred_batch_size': 128},
             }
         },
 
@@ -95,14 +95,14 @@ if __name__ == '__main__':
     }
     callbacks ={
         'checkpoint':{
-            'loss': 'autoencoder_train_mean_squared_error',
+            'loss': 'autoencoder_train_binary_crossentropy',
             'save_best_only': True
         },
         'budget_secs': 1600,
         'early_stopping':{
             'name': 'basic',
             'params': {
-                'patience_loss': 'autoencoder_train_mean_squared_error',
+                'patience_loss': 'autoencoder_train_binary_crossentropy',
                 'patience': 10
             }
         },

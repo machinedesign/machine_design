@@ -120,8 +120,9 @@ class EarlyStopping(Callback):
     def on_epoch_end(self, epoch, logs={}):
         current = logs.get(self.monitor)
         if current is None:
-            warnings.warn('Early stopping requires %s available!' %
-                          (self.monitor), RuntimeWarning)
+            warnings.warn('Early stopping requires %s available! available stats are : %s.Skipping.' %
+                          (self.monitor, logs.keys()), RuntimeWarning)
+            return
         if self.monitor_op(current - self.min_delta, self.best):
             self.best = current
             self.wait = 0
@@ -467,7 +468,7 @@ class ModelsCheckpoint(Callback):
             current = logs.get(self.monitor)
             if current is None:
                 warnings.warn('Can save best model only with %s available, '
-                              'skipping.' % (self.monitor), RuntimeWarning)
+                              'skipping. available stats are : %s' % (self.monitor, logs.keys()), RuntimeWarning)
             else:
                 if self.monitor_op(current, self.best):
                     if self.verbose > 0:

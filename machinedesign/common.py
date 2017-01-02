@@ -415,8 +415,8 @@ def show_model_info(model, print_func=print):
     print_func('Input shape : {}'.format(model.input_shape))
     print_func('Output shape : {}'.format(model.output_shape))
     print_func('Number of parameters : {}'.format(model.count_params()))
-    nb = sum(1 for layer in model.layers if hasattr(layer, 'W'))
-    nb_W_params = sum(np.prod(layer.W.get_value().shape) for layer in model.layers if hasattr(layer, 'W'))
+    nb = sum(1 for layer in model.layers if hasattr(layer, 'W') and layer.trainable)
+    nb_W_params = sum(np.prod(layer.W.get_value().shape) for layer in model.layers if hasattr(layer, 'W') and layer.trainable)
     print_func('Number of weight parameters : {}'.format(nb_W_params))
     print_func('Number of learnable layers : {}'.format(nb))
 

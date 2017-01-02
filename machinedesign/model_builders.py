@@ -9,11 +9,11 @@ from keras.layers import Input
 from keras.layers import Reshape
 from keras.models import Model
 
-from ..common import activation_function
-from ..common import fully_connected_layers
-from ..common import noise
-from ..common import conv2d_layers
-from ..common import Convolution2D
+from .common import activation_function
+from .common import fully_connected_layers
+from .common import noise
+from .common import conv2d_layers
+from .common import Convolution2D
 
 def fully_connected(params, input_shape, output_shape):
     output_shape_flat = np.prod(output_shape)

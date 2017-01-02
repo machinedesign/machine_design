@@ -5,11 +5,10 @@ helpers used commonly in models.
 from __future__ import print_function
 import numpy as np
 import time
+import warnings
 
 import keras.backend as K
 from keras.callbacks import Callback
-from keras.callbacks import EarlyStopping
-from keras.callbacks import ModelCheckpoint
 
 __all__ = [
     "Dummy",
@@ -63,6 +62,78 @@ class CallbackContainer(Callback):
             cb.on_batch_end(batch, logs)
 
 
+class EarlyStopping(Callback):
+    '''Stop training when a monitored quantity has stopped improving.
+
+    # Arguments
+        monitor: quantity to be monitored.
+        min_delta: minimum change in the monitored quantity
+            to qualify as an improvement, i.e. an absolute
+            change of less than min_delta, will count as no
+            improvement.
+        patience: number of epochs with no improvement
+            after which training will be stopped.
+        verbose: verbosity mode.
+        mode: one of {auto, min, max}. In `min` mode,
+            training will stop when the quantity
+            monitored has stopped decreasing; in `max`
+            mode it will stop when the quantity
+            monitored has stopped increasing; in `auto`
+            mode, the direction is automatically inferred
+            from the name of the monitored quantity.
+    '''
+    def __init__(self, monitor='val_loss', min_delta=0, patience=0, verbose=0, mode='auto'):
+        super(EarlyStopping, self).__init__()
+
+        self.monitor = monitor
+        self.patience = patience
+        self.verbose = verbose
+        self.min_delta = min_delta
+        self.wait = 0
+        self.stopped_epoch = 0
+
+        if mode not in ['auto', 'min', 'max']:
+            warnings.warn('EarlyStopping mode %s is unknown, '
+                          'fallback to auto mode.' % (self.mode),
+                          RuntimeWarning)
+            mode = 'auto'
+
+        if mode == 'min':
+            self.monitor_op = np.less
+        elif mode == 'max':
+            self.monitor_op = np.greater
+        else:
+            if 'acc' in self.monitor:
+                self.monitor_op = np.greater
+            else:
+                self.monitor_op = np.less
+
+        if self.monitor_op == np.greater:
+            self.min_delta *= 1
+        else:
+            self.min_delta *= -1
+
+    def on_train_begin(self, logs={}):
+        self.wait = 0       # Allow instances to be re-used
+        self.best = np.Inf if self.monitor_op == np.less else -np.Inf
+
+    def on_epoch_end(self, epoch, logs={}):
+        current = logs.get(self.monitor)
+        if current is None:
+            warnings.warn('Early stopping requires %s available!' %
+                          (self.monitor), RuntimeWarning)
+        if self.monitor_op(current - self.min_delta, self.best):
+            self.best = current
+            self.wait = 0
+        else:
+            if self.wait >= self.patience:
+                self.stopped_epoch = epoch
+                raise StopTrainingException()
+            self.wait += 1
+
+    def on_train_end(self, logs={}):
+        if self.stopped_epoch > 0 and self.verbose > 0:
+            print('Epoch %05d: early stopping' % (self.stopped_epoch))
 class LearningRateScheduler(Callback):
     """
     Callback for learning rate scheduling
@@ -328,6 +399,103 @@ class DoEachEpoch(Callback):
         self.epoch = epoch
         self.func(self)
 
+class ModelsCheckpoint(Callback):
+    '''Save the model after every epoch.
+
+    `filepath` can contain named formatting options,
+    which will be filled the value of `epoch` and
+    keys in `logs` (passed in `on_epoch_end`).
+
+    For example: if `filepath` is `weights.{epoch:02d}-{val_loss:.2f}.hdf5`,
+    then multiple files will be save with the epoch number and
+    the validation loss.
+
+    # Arguments
+        models : list of keras Model
+        filepath: string, path to save the model file.
+        monitor: quantity to monitor.
+        verbose: verbosity mode, 0 or 1.
+        save_best_only: if `save_best_only=True`,
+            the latest best model according to
+            the quantity monitored will not be overwritten.
+        mode: one of {auto, min, max}.
+            If `save_best_only=True`, the decision
+            to overwrite the current save file is made
+            based on either the maximization or the
+            minimization of the monitored quantity. For `val_acc`,
+            this should be `max`, for `val_loss` this should
+            be `min`, etc. In `auto` mode, the direction is
+            automatically inferred from the name of the monitored quantity.
+        save_weights_only: if True, then only the model's weights will be
+            saved (`model.save_weights(filepath)`), else the full model
+            is saved (`model.save(filepath)`).
+
+    '''
+    def __init__(self, models, filepaths, monitor='val_loss', verbose=0,
+                 save_best_only=False, save_weights_only=False,
+                 mode='auto'):
+        super(ModelsCheckpoint, self).__init__()
+        self.models = models
+        self.filepaths = filepaths
+        self.monitor = monitor
+        self.verbose = verbose
+        self.save_best_only = save_best_only
+        self.save_weights_only = save_weights_only
+
+        if mode not in ['auto', 'min', 'max']:
+            warnings.warn('ModelCheckpoint mode %s is unknown, '
+                          'fallback to auto mode.' % (mode),
+                          RuntimeWarning)
+            mode = 'auto'
+
+        if mode == 'min':
+            self.monitor_op = np.less
+            self.best = np.Inf
+        elif mode == 'max':
+            self.monitor_op = np.greater
+            self.best = -np.Inf
+        else:
+            if 'acc' in self.monitor:
+                self.monitor_op = np.greater
+                self.best = -np.Inf
+            else:
+                self.monitor_op = np.less
+                self.best = np.Inf
+
+    def on_epoch_end(self, epoch, logs={}):
+        if self.save_best_only:
+            current = logs.get(self.monitor)
+            if current is None:
+                warnings.warn('Can save best model only with %s available, '
+                              'skipping.' % (self.monitor), RuntimeWarning)
+            else:
+                if self.monitor_op(current, self.best):
+                    if self.verbose > 0:
+                        print('Epoch %05d: %s improved from %0.5f to %0.5f,'
+                              ' saving model(s).'
+                              % (epoch, self.monitor, self.best,
+                                 current))
+                    self.best = current
+                    if self.save_weights_only:
+                        for model, filepath in zip(self.models, self.filepaths):
+                            model.save_weights(filepath, overwrite=True)
+                    else:
+                        for model, filepath in zip(self.models, self.filepaths):
+                            model.save(filepath, overwrite=True)
+                else:
+                    if self.verbose > 0:
+                        print('Epoch %05d: %s did not improve' %
+                              (epoch, self.monitor))
+        else:
+            if self.verbose > 0:
+                print('Epoch %05d: saving model(s)' % (epoch,))
+            if self.save_weights_only:
+                for model, filepath in zip(self.models, self.filepaths):
+                    model.save_weights(filepath, overwrite=True)
+            else:
+                for model, filepath in zip(self.models, self.filepaths):
+                    model.save(filepath, overwrite=True)
+
 def build_early_stopping_callback(name, params, outdir='out'):
     """
     Helper to build EarlyStopping callback
@@ -364,7 +532,7 @@ def build_early_stopping_callback(name, params, outdir='out'):
     elif name == 'none':
         return Dummy()
 
-def build_model_checkpoint_callback(params, model_filename='model.pkl'):
+def build_models_checkpoint_callback(params, models, filepaths):
     """
     Helper to build ModelCheckpoint callback
 
@@ -379,21 +547,21 @@ def build_model_checkpoint_callback(params, model_filename='model.pkl'):
         'save_best_only': bool
             if True, save the model with the best `loss`, otherwise
             otherwise always save the model.
-    model_filename: str
-        filename where to save the model
-    model: keras model
-        the model
-
+    models: list of keras Model
+        models to consider
+    filepaths : list of str of filenames
+        filenames where to save the models
     Returns
     -------
 
-    ModelCheckpoint instance
+    ModelsCheckpoint instance
 
     """
     loss = params['loss']
     save_best_only = params['save_best_only']
-    callback = ModelCheckpoint(
-        model_filename,
+    callback = ModelsCheckpoint(
+        models,
+        filepaths,
         monitor=loss,
         verbose=1,
         save_best_only=save_best_only,
@@ -416,4 +584,8 @@ def build_lr_schedule_callback(name, params, print_func=print):
 
 class BudgetFinishedException(Exception):
     """raised when the time budget is reached"""
+    pass
+
+class StopTrainingException(Exception):
+    """raised when early stopping asks to stop training"""
     pass

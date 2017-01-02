@@ -12,9 +12,15 @@ def main():
         'model': {
             'name': 'convolutional_bottleneck',
             'params':{
-                
-                'output_activation': 'sigmoid'
-             }
+            'fully_connected_nb_hidden_units_list': [500],
+            'fully_connected_activations': ['relu'],
+            'output_activation': 'sigmoid',
+            'input_noise':{
+                'name': 'gaussian',
+                'params': {
+                    'std': 1
+                }
+            },
         },
         'data': {
             'train': {

@@ -10,6 +10,7 @@ from keras.layers import Dense
 from keras.layers import Layer
 from keras.layers import Convolution2D
 from keras.layers import GaussianNoise
+from keras.layers import LeakyReLU
 from keras import optimizers
 import keras.backend as K
 
@@ -225,7 +226,8 @@ custom_layers = {
     'winner_take_all_spatial': winner_take_all_spatial,
     'winner_take_all_channel': winner_take_all_channel,
     'axis_softmax': axis_softmax,
-    'UpConv2D': UpConv2D
+    'UpConv2D': UpConv2D,
+    'leaky_relu': LeakyReLU
 }
 
 custom_objects = {}
@@ -277,8 +279,8 @@ def fully_connected_layers(x, nb_hidden_units, activations, init='glorot_uniform
         x = activation_function(act)(x)
     return x
 
-def conv2d_layers(x, nb_filters, filter_sizes, activations, 
-                  init='glorot_uniform', border_mode='valid', 
+def conv2d_layers(x, nb_filters, filter_sizes, activations,
+                  init='glorot_uniform', border_mode='valid',
                   stride=1, conv_layer=Convolution2D):
     """
     Apply a stack of 2D convolutions to a layer `x`
@@ -407,3 +409,12 @@ def check_family_or_exception(family, expected):
     """if family is not equal to expected, raise WrongModelFamilyException"""
     if family != expected:
         raise WrongModelFamilyException("expected family to be '{}', got {}".format(expected, family))
+
+def show_model_info(model, print_func=print):
+    print_func('Input shape : {}'.format(model.input_shape))
+    print_func('Output shape : {}'.format(model.output_shape))
+    print_func('Number of parameters : {}'.format(model.count_params()))
+    nb = sum(1 for layer in model.layers if hasattr(layer, 'W'))
+    nb_W_params = sum(np.prod(layer.W.get_value().shape) for layer in model.layers if hasattr(layer, 'W'))
+    print_func('Number of weight parameters : {}'.format(nb_W_params))
+    print_func('Number of learnable layers : {}'.format(nb))

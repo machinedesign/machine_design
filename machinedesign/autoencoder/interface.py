@@ -33,9 +33,13 @@ def train(params):
     domain_specific = params['report'].get('domain_specific')
     if domain_specific:
         if 'image_reconstruction' in domain_specific:
-            report_callbacks.append(DoEachEpoch(_report_image_reconstruction))
+            cb = DoEachEpoch(_report_image_reconstruction)
+            cb.outdir = params['report']['outdir']
+            report_callbacks.append(cb)
         if 'image_features' in domain_specific:
-            report_callbacks.append(DoEachEpoch(_report_image_features))
+            cb = DoEachEpoch(_report_image_features)
+            cb.outdir = params['report']['outdir']
+            report_callbacks.append(cb)
     # Call training functions
     return train_basic(
         params,
@@ -185,7 +189,7 @@ def get_method(name):
 def _report_image_reconstruction(cb):
     model = cb.model
     data_iterators = cb.data_iterators
-    params = cb.params
+    outdir = cb.outdir
     epoch = cb.epoch
     transformers = cb.transformers
 
@@ -195,7 +199,7 @@ def _report_image_reconstruction(cb):
     X_rec = inverse_transform_one(X_rec, transformers)
     X = inverse_transform_one(X, transformers)
     img = _get_input_reconstruction_grid(X, X_rec, grid_of_images=grid_of_images_default)
-    folder = os.path.join(params['report']['outdir'], 'recons')
+    folder = os.path.join(outdir, 'recons')
     mkdir_path(folder)
     filename = os.path.join(folder, '{:05d}.png'.format(epoch))
     imsave(filename, img)
@@ -203,7 +207,7 @@ def _report_image_reconstruction(cb):
 def _report_image_features(cb):
     model = cb.model
     epoch = cb.epoch
-    params = cb.params
+    outdir = cb.outdir
 
     # this can happen with input is discretized
     # into a number of colors. in that case the
@@ -220,7 +224,7 @@ def _report_image_features(cb):
             except ValueError:
                 continue
             img = grid_of_images_default(img, normalize=True)
-            folder = os.path.join(params['report']['outdir'], 'features_{}'.format(layer.name))
+            folder = os.path.join(outdir, 'features_{}'.format(layer.name))
             mkdir_path(folder)
             filename = os.path.join(folder, '{:05d}.png'.format(epoch))
             imsave(filename, img)

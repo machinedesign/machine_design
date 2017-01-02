@@ -198,8 +198,9 @@ def batch_iterator(iterator, batch_size=128, repeat=True, cols=['X', 'y']):
     repeat: bool
         if True, `itertools.cycle` is applied to the resulting `iterator` so that
         it repeats.
-    cols: list of str
-        columns to use from the dicts.
+    cols: list of str or str
+        if it is list of str, columns to use from the dicts.
+        if it is str and cols=='all', use all columns.
         np.array is applied to those columns to convert
         them into a numpy array.
     Returns
@@ -210,10 +211,17 @@ def batch_iterator(iterator, batch_size=128, repeat=True, cols=['X', 'y']):
     The number of examples for the values in the dict are at max `batch_size` (can be less).
 
     """
+    if not isinstance(cols, list):
+        if cols == 'all':
+            cols = None
+        else:
+            raise ValueError('Expected cols to be either a list or the str "all", got : {}'.format(cols))
+    
     iterator = minibatch(iterator, batch_size=batch_size)
     iterator = expand_dict(iterator)
     iterator = imap(partial(dict_apply, fn=floatX, cols=cols), iterator)
-    iterator = imap(lambda data: {c: data[c] for c in cols}, iterator)
+    if cols:
+        iterator = imap(lambda data: {c: data[c] for c in cols}, iterator)
     if repeat:
         iterator = cycle(iterator)
     return iterator

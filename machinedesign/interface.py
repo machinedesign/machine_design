@@ -10,6 +10,7 @@ except ImportError:
 
 from .common import build_optimizer
 from .common import mkdir_path
+from .common import show_model_info
 
 from .objectives import get_loss
 from .data import pipeline_load
@@ -21,10 +22,11 @@ from .data import dict_apply
 
 from .callbacks import CallbackContainer
 from .callbacks import BudgetFinishedException
+from .callbacks import StopTrainingException
 from .callbacks import TimeBudget
 from .callbacks import RecordEachEpoch
 from .callbacks import build_early_stopping_callback
-from .callbacks import build_model_checkpoint_callback
+from .callbacks import build_models_checkpoint_callback
 from .callbacks import build_lr_schedule_callback
 
 from .transformers import make_transformers_pipeline
@@ -42,7 +44,6 @@ logger = logging.getLogger(__name__)
 
 __all__ = [
     "train",
-    "show_model_info"
 ]
 
 def train(params, builders={}, inputs='X', outputs='y', logger=logger, callbacks=[]):
@@ -93,6 +94,7 @@ def train(params, builders={}, inputs='X', outputs='y', logger=logger, callbacks
         it = batch_iterator(it, batch_size=batch_size, repeat=False, cols=[inputs])
         it = imap(lambda d:d[inputs], it)
         return it
+
     fit_transformers(
         transformers,
         transformers_data_generator
@@ -127,7 +129,8 @@ def train(params, builders={}, inputs='X', outputs='y', logger=logger, callbacks
     model = _build_model(
         name=model_name,
         params=model_params,
-        shapes=shapes,
+        input_shape=shapes[inputs],
+        output_shape=shapes[outputs],
         builders=builders)
     #TODO: understand more this
     # I did this to avoid missinginputerror of K.learning_phase when
@@ -139,6 +142,7 @@ def train(params, builders={}, inputs='X', outputs='y', logger=logger, callbacks
     # True.
     for lay in model.layers:
         lay.uses_learning_phase = True
+
     optimizer = build_optimizer(algo_name, algo_params)
     loss = get_loss(loss_name)
     model.compile(loss=loss, optimizer=optimizer)
@@ -156,9 +160,10 @@ def train(params, builders={}, inputs='X', outputs='y', logger=logger, callbacks
         params=early_stopping_params)
 
     model_filename = os.path.join(outdir, 'model.h5')
-    checkpoint = build_model_checkpoint_callback(
-        model_filename=model_filename,
-        params=checkpoint)
+    checkpoint = build_models_checkpoint_callback(
+        params=checkpoint,
+        models=[model],
+        filepaths=[model_filename])
 
     metric_callbacks = []
     for metric in metrics:
@@ -194,7 +199,6 @@ def train(params, builders={}, inputs='X', outputs='y', logger=logger, callbacks
     history_stats = []
 
     model.history_stats = history_stats
-    model.stop_training = False
     for epoch in range(max_nb_epochs):
         logger.info('Epoch {:05d}...'.format(epoch))
         dt = time.time()
@@ -207,16 +211,20 @@ def train(params, builders={}, inputs='X', outputs='y', logger=logger, callbacks
         try:
             callbacks.on_epoch_end(epoch, logs=stats)
         except BudgetFinishedException:
-            logger.info('Budget finished. Stop.')
-            model.stop_training = True
+            logger.info('Budget finished. Stop training.')
+            stop_training = True
+        except StopTrainingException:
+            logger.info('Early stopping. Stop training.')
+            stop_training = True
+        else:
+            stop_training = False
         history_stats.append(stats)
         for k, v in stats.items():
             logger.info('{}={:.4f}'.format(k, v))
         logger.info('elapsed time : {:.3f}s'.format(time.time() - dt))
         # the following happens
         # when early stopping or budget finished
-        if model.stop_training:
-            logger.info('Stopping training.')
+        if stop_training:
             break
     return model
 
@@ -225,13 +233,6 @@ def load(folder):
 
 def generate(params):
     pass
-
-def show_model_info(model, print_func=print):
-    print_func('Number of parameters : {}'.format(model.count_params()))
-    nb = sum(1 for layer in model.layers if hasattr(layer, 'W'))
-    nb_W_params = sum(np.prod(layer.W.get_value().shape) for layer in model.layers if hasattr(layer, 'W'))
-    print_func('Number of weight parameters : {}'.format(nb_W_params))
-    print_func('Number of learnable layers : {}'.format(nb))
 
 def _update_history(model, logs):
     for k, v in logs.items():
@@ -246,7 +247,7 @@ def _build_compute_func(predict, data_generator, metric,
     compute_func = lambda: aggregate(compute_metric(get_real_and_pred, metric))
     return compute_func
 
-def _build_model(name, params, shapes, builders={}):
+def _build_model(name, params, input_shape, output_shape, builders={}):
     model_builder = builders[name]
-    model = model_builder(params, shapes) # keras model
+    model = model_builder(params, input_shape, output_shape) # keras model
     return model

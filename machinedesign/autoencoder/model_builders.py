@@ -15,14 +15,12 @@ from ..common import Convolution2D
 from ..common import UpConv2D
 from ..common import noise
 
-def fully_connected(params, shapes):
-    input_shape = shapes['X']
-    output_shape = shapes['X']
+def fully_connected(params, input_shape, output_shape):
     output_shape_flat = np.prod(output_shape)
     nb_hidden_units = params['fully_connected_nb_hidden_units_list']
     hidden_activations = params['fully_connected_activations']
     output_activation = params['output_activation']
-    
+
     noise_name = params['input_noise']['name']
     noise_params = params['input_noise']['params']
     apply_noise = partial(noise, name=noise_name, params=noise_params)
@@ -39,10 +37,10 @@ def fully_connected(params, shapes):
     model = Model(input=inp, output=out)
     return model
 
-def convolutional_bottleneck(params, shapes):
-    input_shape = shapes['X']
+def convolutional_bottleneck(params, input_shape, output_shape):
+    assert input_shape == output_shape
     nb_channels = input_shape[0]
-    
+
     stride = params['stride']
 
     encode_nb_filters = params['conv_encode_nb_filters']

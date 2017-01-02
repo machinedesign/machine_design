@@ -1,6 +1,6 @@
 if __name__ == '__main__':
     from machinedesign.multi_interface import train
-    from machinedesign.autoencoder import model_builders
+    from machinedesign import model_builders
     from machinedesign.common import object_to_dict
     from machinedesign.callbacks import DoEachEpoch
     from machinedesign.autoencoder.interface import _report_image_reconstruction, _report_image_features
@@ -11,7 +11,7 @@ if __name__ == '__main__':
             'input_col': 'X',
             'output_col': 'X',
             'architecture': {
-                'type': 'fully_connected',
+                'name': 'fully_connected',
                 'params': {
                     'fully_connected_nb_hidden_units_list': [500],
                     'fully_connected_activations': [{'name': 'leaky_relu', 'params':{'alpha': 0.3}}],
@@ -29,7 +29,7 @@ if __name__ == '__main__':
                     'input_col': 'X',
                     'type': 'discriminator',
                     'architecture': {
-                        'type': 'fully_connected',
+                        'name': 'fully_connected',
                         'params': {
                             'fully_connected_nb_hidden_units_list': [50],
                             'fully_connected_activations': [{'name': 'leaky_relu', 'params':{'alpha': 0.3}}],
@@ -67,7 +67,7 @@ if __name__ == '__main__':
             },
             'losses':[
                 {'name': 'binary_crossentropy', 'coef': 1, 'params': {}},
-                {'name': 'discriminator', 'coef': 0, 'params': {}}
+                {'name': 'discriminator', 'coef': 1, 'params': {}}
             ],
             'callbacks':{
                 'lr_schedule':{

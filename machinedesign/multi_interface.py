@@ -207,7 +207,7 @@ def build_model_and_evaluators_from_spec(spec, col_shapes, builders={},
             takes a dict of data (keys are modalities, e.g X and y, values are data)
             and return data corresponding to the output col used by the model.
             For models, it is just returning the modality provided by output_col.
-            For evaluators, it returns evaluator.get_true_output(input_col).
+            For evaluators, it returns evaluator.get_real_output(input_col).
         optimizer : keras Optimizer of the model
         evaluators : list of keras model
             evaluators of the model
@@ -349,7 +349,7 @@ def build_loss_func_from_evaluator(evaluator):
         import theano.tensor as T
         # TODO support tensorflow
         z_fake = evaluator(y_fake)
-        z_fake_expected = evaluator.get_fake_output(y_fake, backend=T)
+        z_fake_expected = evaluator.get_real_output(y_fake, backend=T)
         return evaluator.loss_func(z_fake, z_fake_expected)
     return loss
 

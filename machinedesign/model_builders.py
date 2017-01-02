@@ -27,7 +27,8 @@ def fully_connected(params, input_shape, output_shape):
 
     x = Input(input_shape)
     inp = x
-    x = Flatten()(x)
+    if len(input_shape)>1:
+        x = Flatten()(x)
     x = apply_noise(x)
     x = fully_connected_layers(x, nb_hidden_units, hidden_activations)
     x = Dense(output_shape_flat, init='glorot_uniform')(x)

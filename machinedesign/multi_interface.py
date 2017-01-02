@@ -116,6 +116,7 @@ def train(params, model_builders={}, logger=logger, callbacks=[]):
         cb.params = cb.model.spec
         cb.transformers = []
         cb.outdir = outdir
+
     nb_train_samples = data['train'].get('nb_samples', get_nb_samples(data_train_pipeline))
     nb_minibatches = get_nb_minibatches(nb_train_samples, batch_size)
     logger.info('Number of training examples : {}'.format(nb_train_samples))

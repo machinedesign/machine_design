@@ -24,6 +24,9 @@ from datakit.image import operators as image_operators
 from datakit.helpers import minibatch
 from datakit.helpers import expand_dict
 from datakit.helpers import dict_apply
+from datakit.helpers import apply_to
+
+from keras.models import Model
 
 __all__ = [
     "pipeline_load",
@@ -127,13 +130,59 @@ def _iterate(data, start=0, nb=None, cols=['X', 'y']):
             yield d
     return iter_func()
 
+_pretrained = {}
+def _pipeline_pretrained_transform(iterator, model_name='inceptionv3',
+                                   layer=None, include_top=False,
+                                   input_col='X', output_col='h'):
+    # This function assumes the pixels are between 0 and 1
+    def _transform(data):
+        assert layer is not None, 'expected layer to not be None, please specify it'
+        X = data[input_col]
+        if model_name in _pretrained:
+            model = _pretrained[model_name]
+        else:
+            if model_name == 'inceptionv3':
+                from keras.applications import InceptionV3
+                model = InceptionV3(input_shape=X.shape, weights='imagenet', include_top=include_top)
+                X = X * 2 - 1
+            elif model_name == 'alexnet':
+                from convnetskeras.convnets import convnet
+                assert X.shape == (3, 227, 227), 'for "alexnet" shape should be (3, 227, 227), got : {}'.format(X.shape)
+                weights_path = "{}/.keras/models/alexnet_weights.h5".format(os.getenv('HOME'))
+                assert os.path.exists(weights_path), ('weights path of alexnet {} does not exist, please download manually'
+                                                     'from http://files.heuritech.com/weights/alexnet_weights.h5 and put it there '
+                                                     '(see https://github.com/heuritech/convnets-keras)'.format(weights_path))
+                model = convnet('alexnet',weights_path=weights_path, heatmap=False)
+                X *= 255.
+                X[0, :, :] -= 123.68
+                X[1, :, :] -= 116.779
+                X[2, :, :] -= 103.939
+            else:
+                raise ValueError('expected name to be "inceptionv3" or "alexnet", got : {}'.format(model_name))
+            names = [layer.name for layer in model.layers]
+            assert layer in names, 'layer "{}" does not exist, available : {}'.format(layer, names)
+            model = Model(input=model.layers[0].input, output=model.get_layer(layer).output)
+            _pretrained[model_name] = model
+        X = X[np.newaxis, :, :, :]
+        h = model.predict(X)
+        h = h[0]
+        data[output_col] = h
+        return data
+    iterator = imap(_transform, iterator)
+    return iterator
+
 load_operators = {
     'load_numpy': _pipeline_load_numpy,
     'load_hdf5': _pipeline_load_hdf5
 }
+
+transform_operators = {
+    'pretrained_transform': _pipeline_pretrained_transform
+}
 operators = {}
 operators.update(image_operators)
 operators.update(load_operators)
+operators.update(transform_operators)
 pipeline_load = partial(pipeline_load, operators=operators)
 
 def get_nb_samples(pipeline):
@@ -216,7 +265,7 @@ def batch_iterator(iterator, batch_size=128, repeat=True, cols=['X', 'y']):
             cols = None
         else:
             raise ValueError('Expected cols to be either a list or the str "all", got : {}'.format(cols))
-    
+
     iterator = minibatch(iterator, batch_size=batch_size)
     iterator = expand_dict(iterator)
     iterator = imap(partial(dict_apply, fn=floatX, cols=cols), iterator)

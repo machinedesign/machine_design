@@ -8,7 +8,7 @@ if __name__ == '__main__':
     models = [
         {
             'name': 'autoencoder',
-            'input_col': 'X',
+            'input_col': 'h',
             'output_col': 'X',
             'architecture': {
                 'name': 'fully_connected',
@@ -87,10 +87,13 @@ if __name__ == '__main__':
                 {"name": "imageread", "params": {}},
                 {"name": "normalize_shape", "params": {}},
                 {"name": "force_rgb", "params": {}},
-                {"name": "resize", "params": {"shape": [16, 16]}},
+                {"name": "resize", "params": {"shape": [227, 227]}},
                 {"name": "divide_by", "params": {"value": 255}},
-                {"name": "order", "params": {"order": "th"}}
+                {"name": "order", "params": {"order": "th"}},
+                {"name": "pretrained_transform",
+                 "params": {"model_name": "alexnet", "layer": "dense_1", "input_col": "X", "output_col": "h"}}
             ],
+
         }
     }
     callbacks ={

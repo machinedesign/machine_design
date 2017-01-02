@@ -196,12 +196,14 @@ def _report_image_reconstruction(cb):
     outdir = cb.outdir
     epoch = cb.epoch
     transformers = cb.transformers
-
     data = next(data_iterators['train'](batch_size=128))
-    X = data['X']
+    if hasattr(model, 'get_input_col'):
+        X = model.get_input_col(data)
+    else:
+        X = data['X']
     X_rec = model.predict(X)
     X_rec = inverse_transform_one(X_rec, transformers)
-    X = inverse_transform_one(X, transformers)
+    X = inverse_transform_one(data['X'], transformers)
     img = _get_input_reconstruction_grid(X, X_rec, grid_of_images=grid_of_images_default)
     folder = os.path.join(outdir, 'recons')
     mkdir_path(folder)

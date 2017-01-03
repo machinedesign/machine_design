@@ -12,6 +12,7 @@ from keras.layers import Layer
 from keras.layers import Convolution2D
 from keras.layers import GaussianNoise
 from keras.layers import LeakyReLU
+from keras.engine.training import Model
 from keras import optimizers
 import keras.backend as K
 
@@ -222,13 +223,29 @@ class UpConv2D(Convolution2D):
         output = self.activation(output)
         return output
 
+class Normalize(Layer):
+
+    def __init__(self, bias, scale, **kwargs):
+        super(Normalize, self).__init__(**kwargs)
+        self.bias = np.array(bias, dtype='float32')
+        self.scale = np.array(scale, dtype='float32')
+
+    def call(self, X, mask=None):
+        return (X * self.scale) + self.bias
+
+    def get_config(self):
+        config = {'bias': self.bias.tolist(), 'scale': self.scale.tolist()}
+        base_config = super(Normalize, self).get_config()
+        return dict(list(base_config.items()) + list(config.items()))
+
 custom_layers = {
     'ksparse': ksparse,
     'winner_take_all_spatial': winner_take_all_spatial,
     'winner_take_all_channel': winner_take_all_channel,
     'axis_softmax': axis_softmax,
     'UpConv2D': UpConv2D,
-    'leaky_relu': LeakyReLU
+    'leaky_relu': LeakyReLU,
+    'Normalize': Normalize
 }
 
 custom_objects = {}
@@ -415,10 +432,20 @@ def show_model_info(model, print_func=print):
     print_func('Input shape : {}'.format(model.input_shape))
     print_func('Output shape : {}'.format(model.output_shape))
     print_func('Number of parameters : {}'.format(model.count_params()))
-    nb = sum(1 for layer in model.layers if hasattr(layer, 'W') and layer.trainable)
-    nb_W_params = sum(np.prod(layer.W.get_value().shape) for layer in model.layers if hasattr(layer, 'W') and layer.trainable)
+
+    layers = list(_get_layers(model))
+    nb = sum(1 for layer in layers if hasattr(layer, 'W') and layer.trainable)
+    nb_W_params = sum(np.prod(layer.W.get_value().shape) for layer in layers if hasattr(layer, 'W') and layer.trainable)
     print_func('Number of weight parameters : {}'.format(nb_W_params))
     print_func('Number of learnable layers : {}'.format(nb))
+
+def _get_layers(model):
+    for layer in model.layers:
+        if isinstance(layer, Model):
+            for l in _get_layers(layer):
+                yield l
+        elif isinstance(layer, Layer):
+            yield layer
 
 def write_csv(iterable, filename):
     """

@@ -1,31 +1,31 @@
 import os
 import numpy as np
+try:
+    from itertools import imap
+except ImportError:
+    imap = map
 
 from keras.layers import Input
-from keras.layers import Lambda
 from keras.models import Model
 
 from machinedesign.multi_interface import train
 from machinedesign import model_builders
 from machinedesign.common import object_to_dict
+from machinedesign.common import Normalize
 from machinedesign.callbacks import DoEachEpoch
 from machinedesign.autoencoder.interface import _report_image_reconstruction
 from machinedesign.autoencoder.interface import _report_image_features
+from machinedesign.data import pipeline_load
+from machinedesign.data import batch_iterator
 
 from convnetskeras.convnets import convnet
 
 model_builders = object_to_dict(model_builders)
 
-def alexnet_autoencoder(params, input_shape, output_shape):
+def build_alexnet_model(layer, input_shape=(3, 227, 227)):
     """
     WARNING : assumes pixel values are between 0 and 1
     """
-    assert input_shape == output_shape
-    layer = params['layer_name']
-    decoder_name = params['decoder']['name']
-    decoder_params = params['decoder']['params']
-    freeze_encoder = params['freeze_encoder']
-
     assert input_shape == (3, 227, 227), 'for "alexnet" shape should be (3, 227, 227), got : {}'.format(input_shape)
     weights_path = "{}/.keras/models/alexnet_weights.h5".format(os.getenv('HOME'))
     assert os.path.exists(weights_path), ('weights path of alexnet {} does not exist, please download manually'
@@ -35,49 +35,46 @@ def alexnet_autoencoder(params, input_shape, output_shape):
     names = [layer.name for layer in full_model.layers]
     assert layer in names, 'layer "{}" does not exist, available : {}'.format(layer, names)
     encoder = Model(input=full_model.layers[1].input, output=full_model.get_layer(layer).output)
-    if freeze_encoder:
-        for lay in encoder.layers:
-            lay.trainable = False
-    decoder = model_builders[decoder_name](decoder_params, encoder.output_shape[1:], output_shape)
-    decoder = Model(input=decoder.layers[1].input, output=decoder.layers[-1].output)
     x = Input(input_shape)
     inp = x
-    x = Lambda(lambda x:(x * 255.) - np.array([123.68, 116.779, 103.939], dtype='float32')[np.newaxis, :, np.newaxis, np.newaxis],
-               output_shape=input_shape)(x)
+    pixel_mean = np.array([123.68, 116.779, 103.939], dtype='float32')[np.newaxis, :, np.newaxis, np.newaxis]
+    x = Normalize(scale=255., bias=-pixel_mean)(x)
     x = encoder(x)
-    x = decoder(x)
     out = x
     model = Model(input=inp, output=out)
     print(model.layers)
     return model
 
-model_builders['alexnet_autoencoder'] = alexnet_autoencoder
+
+def build_data_generator(pipeline, cols='all'):
+    model = build_alexnet_model('dense_1')
+    def _apply(data):
+        data['h'] = model.predict(data['X'])
+        return data
+    def _gen(batch_size, repeat=False):
+        it = pipeline_load(pipeline)
+        it = batch_iterator(it, batch_size=batch_size, repeat=repeat, cols=cols)
+        it = imap(_apply, it)
+        return it
+    return _gen
 
 if __name__ == '__main__':
 
     models = [
         {
             'name': 'autoencoder',
-            'input_col': 'X',
+            'input_col': 'h',
             'output_col': 'X',
             'architecture': {
-                'name': 'alexnet_autoencoder',
-                'params': {
-                    'layer_name': 'dense_1',
-                    'freeze_encoder': True,
-                    'decoder':{
-                        'name': 'fully_connected',
-                        'params':{
-                            'fully_connected_nb_hidden_units_list': [1000, 1000],
-                            'fully_connected_activations': [{'name': 'leaky_relu', 'params':{'alpha': 0.3}}] * 2,
-                            'output_activation': 'sigmoid',
-                            'input_noise':{
-                                'name': 'none',
-                                'params': {
-                                }
-                            }
+                'name': 'fully_connected',
+                'params':{
+                    'fully_connected_nb_hidden_units_list': [1000, 1000],
+                    'fully_connected_activations': [{'name': 'leaky_relu', 'params':{'alpha': 0.3}}] * 2,
+                    'output_activation': 'sigmoid',
+                    'input_noise':{
+                        'name': 'none',
+                        'params': {
                         }
-
                     }
                 },
             },
@@ -168,4 +165,6 @@ if __name__ == '__main__':
         'outdir': 'out'
     }
     params = {'models': models, 'data': data, 'optim': {'batch_size': 128, 'max_nb_epochs': 100, 'seed': 42}, 'callbacks': callbacks}
-    train(params, model_builders, callbacks=[DoEachEpoch(_report_image_reconstruction), DoEachEpoch(_report_image_features)])
+    train(params, model_builders,
+          callbacks=[DoEachEpoch(_report_image_reconstruction), DoEachEpoch(_report_image_features)],
+          build_data_generator=build_data_generator)

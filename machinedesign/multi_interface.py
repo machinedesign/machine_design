@@ -64,6 +64,23 @@ def train(params, model_builders={}, logger=logger, callbacks=[],
     """
     Train a set of predictors and their corresponding evaluators jointly.
     This training interface is a generalization of the GANs.
+
+    Parameters
+    ----------
+
+    params : dict
+        parameters necessary for training
+    model_builders : dict
+        keys are model type names
+        values are functions that build models based on params, input shape and output shape
+        (e.g check model_builders module to know the expected signature)
+    logger : logger to use for logging
+    callbacks : list of Callback
+        additional callbacks to use
+    build_data_generator : function
+        function that builds an iterator that gives data, by default it uses
+        the one already present in multi_interface module.
+        it can be modified to allow more flexibility.
     """
 
     # get relevant entries from the params
@@ -87,7 +104,6 @@ def train(params, model_builders={}, logger=logger, callbacks=[],
     np.random.seed(seed)
 
     # Build data generators
-
     data_train_generator = build_data_generator(data_train_pipeline)
     data_generators = {
         'train': data_train_generator
@@ -321,11 +337,29 @@ def build_model(type, params, input_shape, output_shape, builders={}):
 
 def get_evaluator_output_funcs_and_shape(type_):
     """
+
+    get evaluator necessary functions to be trained.
+    evaluators need two functions, `get_real_output`, `get_fake_output`, and also the shape
+    of the output to be trained in e.g `train_evaluator_on_batch`.
+    Different types of evaluators could be desired, but for now only one type
+    is supported, one that is equivalent to GANs, `type_`=="discriminator"
+    In that case, `get_real_output` returns a set of ones and `get_fake_output`
+    returns a set of zeros.
+
     Parameters
     ----------
 
+    type_ : 'discriminator'
+        type of evaluator
+
     Returns
     -------
+
+    (get_real_output, get_fake_output, output_shape)
+
+    where get_real_output is a function, get_fake_output is a function
+    and output_shape is a tuple.
+
     """
     if type_ == 'discriminator':
         get_real_output = lambda Y, backend:backend.ones((Y.shape[0], 1))
@@ -336,11 +370,21 @@ def get_evaluator_output_funcs_and_shape(type_):
 
 def build_loss_func_from_evaluator(evaluator):
     """
+
+    build a loss function to be used by model (e.g a generator) from an evaluator.
+    the loss should express what the model seeks, instead of what the evaluator seeks,
+    that is, in GAN formulation, if the model is a generator, the loss from the evaluator
+    (which is representing the discriminator) should be we want to maximize
+    the fake data to be predicted as real.
     Parameters
     ----------
 
+    evaluator : keras Model
+
     Returns
     -------
+
+    loss function
     """
     def loss(y_real, y_fake):
         import theano.tensor as T
@@ -353,11 +397,21 @@ def build_loss_func_from_evaluator(evaluator):
 
 def loss_aggregate(coefs, funcs):
     """
+
+    Return a function which consists in a weighted average of a set
+    of functions with weights coming from coefs.
+
     Parameters
     ----------
 
+    coefs : list of float
+        coeficient of the loss terms
+    funcs : list of loss functions
+
     Returns
     -------
+
+    loss function
     """
     def loss(y_true, y_pred):
         total = 0
@@ -369,11 +423,22 @@ def loss_aggregate(coefs, funcs):
 
 def build_models_callbacks(models, data_generators):
     """
+
+    Build all the callbacks necessary for all the models and return all
+    the callbacks concatenated into one single list.
+
     Parameters
     ----------
 
+    models : list of keras Model
+    data_generators : dict
+        keys are data split names (e.g train, test).
+        values are functions that create an iterator.
+
     Returns
     -------
+
+    list of Callback
     """
     callbacks = []
     for model in models:
@@ -382,11 +447,23 @@ def build_models_callbacks(models, data_generators):
 
 def build_callbacks(spec, model, data):
     """
+
+    Build callbacks from a callback specification for a given model and data generator
+
     Parameters
     ----------
 
+    spec : dict
+        specification of callbacks
+    model : keras Model
+    data : dict
+        keys are data split names (e.g train, test).
+        values are functions that create an iterator.
+
     Returns
     -------
+
+    list of Callback
     """
     lr_schedule = spec['lr_schedule']
     lr_schedule_name = lr_schedule['name']
@@ -402,8 +479,8 @@ def build_callbacks(spec, model, data):
         print_func=logger.debug)
 
     metric_callbacks = build_metric_callbacks(
-        model,
         metric_names,
+        model,
         data,
         pred_batch_size=pred_batch_size,
         name_prefix=model.name)
@@ -413,13 +490,31 @@ def build_callbacks(spec, model, data):
         cb.data_iterators = data
     return callbacks
 
-def build_metric_callbacks(model, metrics, data_generators, pred_batch_size=128, name_prefix=''):
+def build_metric_callbacks(metrics, model, data_generators, pred_batch_size=128, name_prefix=''):
     """
+
+    Build metric callbacks from metrics callback specification for a given model and data generator
+
     Parameters
     ----------
 
+    metrics : list of str
+        each str correspond to a metric name (see `metric` module)
+    model : keras Model
+    data_generators : dict
+        keys are data split names (e.g train, test).
+        values are functions that create an iterator.
+    pred_batch_size : int
+        prediction batch size for computing the metrics
+    name_prefix : str
+        prefix of the names of the metrics that will appear in the log stats, that is
+        if the name of the metric is 'mean_squared_error' and the prefix
+        is 'model', and the data split is 'train', it will appear as
+        'model_train_mean_squared_error' in the log stats.
     Returns
     -------
+
+    list of Callback
     """
     metric_callbacks = []
     for metric in metrics:
@@ -442,6 +537,7 @@ def build_compute_func(predict, data_generator, metric,
    """
    Parameters
    ----------
+
 
    Returns
    -------
@@ -504,10 +600,15 @@ def train_evaluator_on_batch(evaluator, Y_real, Y_fake):
     Returns
     -------
     """
+
+    # in GAN it is [1 1 1 1....]
     Z_real = evaluator.get_real_output(Y_real, backend=np)
+    # in GAN it is [0 0 0 0....]
     Z_fake = evaluator.get_fake_output(Y_fake, backend=np)
+    # merge them
     Y_concat = np.concatenate((Y_real, Y_fake), axis=0)
     Z_concat = np.concatenate((Z_real, Z_fake), axis=0)
+    # In GAN, this trains the evaluator to separate between real and fake data
     return evaluator.train_on_batch(Y_concat, Z_concat)
 
 def callback_trigger(callbacks, event_name, *args, **kwargs):

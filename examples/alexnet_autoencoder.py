@@ -2,7 +2,6 @@ import os
 import numpy as np
 
 from keras.layers import Input
-from keras.layers import Lambda
 from keras.models import Model
 
 from machinedesign.multi_interface import train

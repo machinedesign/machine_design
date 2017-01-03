@@ -8,12 +8,6 @@ try:
 except  ImportError:
     izip = zip
 
-__all__ = [
-    "mean_squared_error",
-    "compute_metric",
-    "binary_crossentropy"
-]
-
 def mean_squared_error(y_true, y_pred):
     """mean squared error (mean over all axes except the first)"""
     axes = tuple(range(1, len(y_true.shape)))

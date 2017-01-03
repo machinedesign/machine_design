@@ -5,16 +5,8 @@ from __future__ import division
 import os
 from functools import partial
 from itertools import cycle
-try:
-    from itertools import imap
-except ImportError:
-    imap = map
-try:
-    xrange
-except NameError:
-    irange = range
-else:
-    irange = xrange
+from six.moves import map
+from six.moves import range
 
 import numpy as np
 import h5py
@@ -24,7 +16,6 @@ from datakit.image import operators as image_operators
 from datakit.helpers import minibatch
 from datakit.helpers import expand_dict
 from datakit.helpers import dict_apply
-from datakit.helpers import apply_to
 
 from keras.models import Model
 
@@ -102,7 +93,7 @@ def _pipeline_load_hdf5(iterator, filename,
     hf = h5py.File(filename)
 
     def iter_func():
-        for i in irange(start, start + nb, buffer_size):
+        for i in range(start, start + nb, buffer_size):
             d = {}
             for c in cols:
                 d[c] = hf[c][i:i+buffer_size]
@@ -168,7 +159,7 @@ def _pipeline_pretrained_transform(iterator, model_name='inceptionv3',
         h = h[0]
         data[output_col] = h
         return data
-    iterator = imap(_transform, iterator)
+    iterator = map(_transform, iterator)
     return iterator
 
 load_operators = {
@@ -268,9 +259,9 @@ def batch_iterator(iterator, batch_size=128, repeat=True, cols=['X', 'y']):
 
     iterator = minibatch(iterator, batch_size=batch_size)
     iterator = expand_dict(iterator)
-    iterator = imap(partial(dict_apply, fn=floatX, cols=cols), iterator)
+    iterator = map(partial(dict_apply, fn=floatX, cols=cols), iterator)
     if cols:
-        iterator = imap(lambda data: {c: data[c] for c in cols}, iterator)
+        iterator = map(lambda data: {c: data[c] for c in cols}, iterator)
     if repeat:
         iterator = cycle(iterator)
     return iterator
@@ -282,3 +273,48 @@ def floatX(X):
 
 def intX(X):
     return X.astype(np.int32)
+
+def minibatcher(func, batch_size=1000):
+  """
+  Decorator to apply a function minibatch wise to avoid memory
+  problems.
+
+  Paramters
+  ---------
+  func : a function that takes an input and returns an output
+  batch_size : int
+    size of each minibatch
+
+  iterate through all the minibatches, call func, get the results,
+  then concatenate all the results.
+  """
+  def f(X):
+      results = []
+      for sl in iterate_minibatches(len(X), batch_size):
+          results.append(func(X[sl]))
+      if len(results) == 0:
+          return []
+      else:
+          return np.concatenate(results, axis=0)
+  return f
+
+def iterate_minibatches(nb_inputs, batch_size):
+  """
+  Get slices pointing to indices of example forming minibatches
+
+  Paramaters
+  ----------
+  nb_inputs : int
+    size of the data
+  batch_size : int
+    minibatch size
+
+  Yields
+  ------
+
+  slice
+  """
+  for start_idx in range(0, nb_inputs, batch_size):
+      end_idx = min(start_idx + batch_size, nb_inputs)
+      excerpt = slice(start_idx, end_idx)
+      yield excerpt

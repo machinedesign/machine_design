@@ -18,7 +18,6 @@ __all__ = [
     "RecordEachEpoch",
     "DoEachEpoch",
     "build_early_stopping_callback",
-    "build_model_checkpoint_callback",
     "build_lr_schedule_callback",
     "BudgetFinishedException"
 ]

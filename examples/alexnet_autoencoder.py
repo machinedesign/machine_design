@@ -1,9 +1,6 @@
 import os
 import numpy as np
-try:
-    from itertools import imap
-except ImportError:
-    imap = map
+from six.moves import map
 
 from keras.layers import Input
 from keras.models import Model
@@ -53,7 +50,7 @@ def build_data_generator(pipeline, cols='all'):
     def _gen(batch_size, repeat=False):
         it = pipeline_load(pipeline)
         it = batch_iterator(it, batch_size=batch_size, repeat=repeat, cols=cols)
-        it = imap(_apply, it)
+        it = map(_apply, it)
         return it
     return _gen
 

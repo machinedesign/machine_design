@@ -1,10 +1,11 @@
 from keras.layers import Input
 from keras.models import Model
 
+from ..layers import Convolution2D
+from ..layers import UpConv2D
+
 from ..common import activation_function
 from ..common import conv2d_layers
-from ..common import Convolution2D
-from ..common import UpConv2D
 from ..common import check_model_shape_or_exception
 
 def convolutional_bottleneck(params, input_shape, output_shape):

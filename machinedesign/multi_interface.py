@@ -2,10 +2,8 @@ from __future__ import print_function
 import numpy as np
 from functools import partial
 import os
-try:
-    from itertools import imap
-except ImportError:
-    imap = map
+import time
+from six.moves import map
 
 from .common import build_optimizer
 from .common import show_model_info
@@ -33,10 +31,6 @@ import logging
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
-__all__ = [
-    'train'
-]
 
 def build_data_generator(pipeline, cols='all'):
     """
@@ -156,6 +150,7 @@ def train(params, model_builders={}, logger=logger, callbacks=[],
     history_stats = []
     for epoch in range(max_nb_epochs):
         logger.info('Epoch {}...'.format(epoch))
+        t0 = time.time()
         stats = {}
         callback_trigger(callbacks_list, 'on_epoch_begin', epoch, logs=stats)
         for _ in range(nb_minibatches):
@@ -176,6 +171,7 @@ def train(params, model_builders={}, logger=logger, callbacks=[],
             logger.info('{}={:.4f}'.format(k, v))
         history_stats.append(stats)
         write_csv(history_stats, os.path.join(outdir, 'stats.csv'))
+        logger.info('elapsed time : {:.3f}s'.format(time.time() - t0))
         if stop_training:
             logger.info('Stop training.')
             break
@@ -275,9 +271,8 @@ def build_model_and_evaluators_from_spec(spec, col_shapes, builders={},
     evaluator_by_name = {evaluator.name: evaluator for evaluator in evaluators}
 
     loss_names = (loss['name'] for loss in losses)
-    loss_funcs = map(lambda name: build_loss_func_from_evaluator(evaluator_by_name[name])
-                     if name in evaluator_by_name else get_loss(name), loss_names)
-    loss_funcs = list(loss_funcs)
+    loss_funcs = list(map(lambda name: build_loss_func_from_evaluator(evaluator_by_name[name])
+                          if name in evaluator_by_name else get_loss(name), loss_names))
     loss_coefs = [loss['coef'] for loss in losses]
 
     model.loss_func = loss_aggregate(loss_coefs, loss_funcs)

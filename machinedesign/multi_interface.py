@@ -38,7 +38,35 @@ __all__ = [
     'train'
 ]
 
-def train(params, model_builders={}, logger=logger, callbacks=[]):
+def build_data_generator(pipeline, cols='all'):
+    """
+    take a `datakit` pipeline and returns a function that
+    takes batch_size and repeat, and returns an iterator.
+
+    Parameters
+    ----------
+
+    pipeline : list of dict
+        `datakit` pipeline
+    cols : list of str or str
+        if list, list of columns to retrieve from the `datakit` pipeline
+        if str, should be 'all', this will include all the available columns.
+
+    Returns
+    -------
+
+    a function that takes (batch_size, repeat=False) and returns an iterator
+    of dict, where the keys are modalities (e.g `X`, `y`) and the values
+    are data.
+    """
+    def _gen(batch_size, repeat=False):
+        it = pipeline_load(pipeline)
+        it = batch_iterator(it, batch_size=batch_size, repeat=repeat, cols=cols)
+        return it
+    return _gen
+
+def train(params, model_builders={}, logger=logger, callbacks=[],
+          build_data_generator=build_data_generator):
     """
     Train a set of predictors and their corresponding evaluators jointly.
     This training interface is a generalization of the GANs.
@@ -152,33 +180,6 @@ def train(params, model_builders={}, logger=logger, callbacks=[]):
             logger.info('Stop training.')
             break
     return models
-
-def build_data_generator(pipeline, cols='all'):
-    """
-    take a `datakit` pipeline and returns a function that
-    takes batch_size and repeat, and returns an iterator.
-
-    Parameters
-    ----------
-
-    pipeline : list of dict
-        `datakit` pipeline
-    cols : list of str or str
-        if list, list of columns to retrieve from the `datakit` pipeline
-        if str, should be 'all', this will include all the available columns.
-
-    Returns
-    -------
-
-    a function that takes (batch_size, repeat=False) and returns an iterator
-    of dict, where the keys are modalities (e.g `X`, `y`) and the values
-    are data.
-    """
-    def _gen(batch_size, repeat=False):
-        it = pipeline_load(pipeline)
-        it = batch_iterator(it, batch_size=batch_size, repeat=repeat, cols=cols)
-        return it
-    return _gen
 
 def build_model_and_evaluators_from_spec(spec, col_shapes, builders={},
                                          override_input_shape=None,
@@ -352,6 +353,7 @@ def build_loss_func_from_evaluator(evaluator):
         z_fake = evaluator(y_fake)
         z_fake_expected = evaluator.get_real_output(y_fake, backend=T)
         return evaluator.loss_func(z_fake, z_fake_expected)
+    loss.__name__ = 'loss_evaluator'
     return loss
 
 def loss_aggregate(coefs, funcs):
@@ -367,6 +369,7 @@ def loss_aggregate(coefs, funcs):
         for coef, func in zip(coefs, funcs):
             total += coef * func(y_true, y_pred).mean()
         return total
+    loss.__name__ = 'loss_aggregate'
     return loss
 
 def build_models_callbacks(models, data_generators):

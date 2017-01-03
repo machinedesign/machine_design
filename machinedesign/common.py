@@ -447,8 +447,6 @@ def _get_layers(model):
         elif isinstance(layer, Layer):
             yield layer
 
-
-
 def write_csv(iterable, filename):
     """
     write a list of dicts into a csv file

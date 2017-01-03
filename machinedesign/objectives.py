@@ -136,7 +136,8 @@ custom_objectives = {
     'feature_space_mean_squared_error': feature_space_mean_squared_error,
     'objectness': objectness,
     'sum': loss_sum,
-    'loss_sum': loss_sum#TODO fix that
+    'loss_sum': loss_sum,
+    'loss_aggregate': dummy
 }
 
 def get_loss(loss, objectives=objectives):

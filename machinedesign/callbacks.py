@@ -10,18 +10,6 @@ import warnings
 import keras.backend as K
 from keras.callbacks import Callback
 
-__all__ = [
-    "Dummy",
-    "CallbackContainer",
-    "LearningRateScheduler",
-    "TimeBudget",
-    "RecordEachEpoch",
-    "DoEachEpoch",
-    "build_early_stopping_callback",
-    "build_lr_schedule_callback",
-    "BudgetFinishedException"
-]
-
 class Dummy(Callback):
     pass
 
@@ -62,7 +50,13 @@ class CallbackContainer(Callback):
 
 
 class EarlyStopping(Callback):
-    '''Stop training when a monitored quantity has stopped improving.
+    '''
+
+    This is pasted from keras code to launch a StopTrainingException
+    when early stopping is detected instead of modifying self.model.training
+    to True in keras.
+
+    Stop training when a monitored quantity has stopped improving.
 
     # Arguments
         monitor: quantity to be monitored.
@@ -400,7 +394,11 @@ class DoEachEpoch(Callback):
         self.func(self)
 
 class ModelsCheckpoint(Callback):
-    '''Save the model after every epoch.
+    '''
+    this is pasted from keras code with few modifications to enable
+    saving several models at the checkpoint instead of one.
+
+    Save the model after every epoch.
 
     `filepath` can contain named formatting options,
     which will be filled the value of `epoch` and
@@ -412,7 +410,7 @@ class ModelsCheckpoint(Callback):
 
     # Arguments
         models : list of keras Model
-        filepath: string, path to save the model file.
+        filepaths: string, paths where to save the models.
         monitor: quantity to monitor.
         verbose: verbosity mode, 0 or 1.
         save_best_only: if `save_best_only=True`,

@@ -3,10 +3,6 @@ This module contains a list of metrics that are
 common to models.
 """
 import numpy as np
-try:
-    from itertools import izip
-except  ImportError:
-    izip = zip
 
 def mean_squared_error(y_true, y_pred):
     """mean squared error (mean over all axes except the first)"""
@@ -17,7 +13,7 @@ def mean_squared_error(y_true, y_pred):
 def binary_crossentropy(y_true, y_pred, eps=1e-5):
     """ binary cross entropy (mean over all axes except the first)"""
     axes = tuple(range(1, len(y_true.shape)))
-    y_pred = np.clip(y_pred, eps, 1 - eps)#avoid nans
+    y_pred = np.clip(y_pred, eps, 1 - eps)#avoid nans, like done in keras
     score = -(y_true * np.log(y_pred) + (1 - y_true) * np.log(1 - y_pred))
     return score.mean(axis=axes)
 

@@ -156,6 +156,8 @@ custom_objectives = {
     'objectness': objectness,
     'sum': loss_sum,
     'loss_sum': loss_sum,
+    # 'loss_aggregate' is used to multi_interface as evaluator loss.
+    #  it is set to dummy when calling keras load_model
     'loss_aggregate': dummy
 }
 

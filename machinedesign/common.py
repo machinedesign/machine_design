@@ -15,19 +15,23 @@ from keras import optimizers
 from .objectives import custom_objectives
 from .layers import custom_layers
 
-__all__ = [
-    "activation_function",
-    "fully_connected_layers",
-    "build_optimizer",
-    "WrongModelFamilyException",
-    "check_family_or_exception"
-]
-
 custom_objects = {}
 custom_objects.update(custom_objectives)
 custom_objects.update(custom_layers)
 
 def activation_function(name):
+    """
+    gives an activation function based on its name.
+
+    Parameters
+    ----------
+
+    name : str or dict
+
+        - if it is str, assumes it is a keras activation function.
+        - if it is a dict, search in layers of the layers module.
+          it should have two keys, 'name' and 'params'.
+    """
     if isinstance(name, dict):
         act = name
         name, params = act['name'], act['params']
@@ -39,6 +43,15 @@ def activation_function(name):
         return Activation(name)
 
 def noise(x, name, params):
+    """
+    noise application helper.
+
+    name : 'gaussian'
+        type of noise
+    params: dict
+        if name is 'gaussian':
+            'std' : standard deviation of gaussian noise
+    """
     if name == 'gaussian':
         std = params['std']
         return GaussianNoise(std)(x)
@@ -167,6 +180,14 @@ def _get_layers(model):
             yield layer
 
 def check_model_shape_or_exception(model, shape):
+    """
+    check if `model` output shape is `shape`. if it is not raises a ValueError exception.
+    `shape` does not have the first axis (example axis), it is from the second axis
+    till the end, e.g for an image tensor it should be (3, 100, 100).
+
+    Parameters
+    ----------
+    """
     if model.output_shape[1:] != shape:
         msg = """Wrong output shape of the model, expected : {}, got : {}.
                  Please fix the parameters""".format(shape, model.output_shape[1:])

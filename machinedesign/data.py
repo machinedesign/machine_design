@@ -1,5 +1,5 @@
 """
-This module contains common functions for data processing
+This module contains common functions for data processing.
 """
 from __future__ import division
 import os
@@ -18,16 +18,6 @@ from datakit.helpers import expand_dict
 from datakit.helpers import dict_apply
 
 from keras.models import Model
-
-__all__ = [
-    "pipeline_load",
-    "get_nb_samples",
-    "get_shapes",
-    "get_nb_minibatches",
-    "batch_iterator",
-    "floatX",
-    "intX"
-]
 
 def _pipeline_load_numpy(iterator, filename,
                          cols=['X', 'y'],

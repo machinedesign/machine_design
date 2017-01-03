@@ -7,7 +7,8 @@ from six.moves import map
 
 from .common import build_optimizer
 from .common import show_model_info
-from .common import write_csv
+
+from .utils import write_csv
 
 from .objectives import get_loss
 from .data import pipeline_load

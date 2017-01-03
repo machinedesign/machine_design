@@ -466,3 +466,9 @@ def write_csv(iterable, filename):
         writer = csv.DictWriter(f, fieldnames=iterable[0].keys())
         writer.writeheader()
         writer.writerows(iterable)
+
+def check_model_shape_or_exception(model, shape):
+    if model.output_shape[1:] != shape:
+        msg = """Wrong output shape of the model, expected : {}, got : {}.
+                 Please fix the parameters""".format(shape, model.output_shape[1:])
+        raise ValueError(msg)

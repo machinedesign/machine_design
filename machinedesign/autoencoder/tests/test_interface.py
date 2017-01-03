@@ -10,8 +10,8 @@ params_test = {
     'model': {
         'name': 'fully_connected',
         'params':{
-            'fully_connected_nb_hidden_units_list': [10],
-            'fully_connected_activations': ['relu'],
+            'nb_hidden_units': [10],
+            'activations': ['relu'],
             'output_activation': 'sigmoid',
             'input_noise':{
                 'name': 'gaussian',

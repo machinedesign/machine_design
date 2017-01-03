@@ -13,14 +13,14 @@ from keras import objectives
 from keras.models import load_model
 from keras.models import Model
 
-__all__ = [
-    "mean_squared_error",
-    "get_loss",
-    "custom_objectives",
-    "axis_categorical_crossentropy"
-]
+from .utils import object_to_dict
 
 def dummy(y_true, y_pred):
+    """
+    dummy loss outputing a scalar of zero. it is used to
+    specify a dummy loss when a keras model is loaded and the
+    original loss function  can't be loaded with keras load_model
+    """
     return (y_pred * 0).mean()
 
 def mean_squared_error(y_true, y_pred):
@@ -28,6 +28,32 @@ def mean_squared_error(y_true, y_pred):
     y_true = y_true.flatten(2)
     y_pred = y_pred.flatten(2)
     return K.mean(K.square(y_pred - y_true), axis=1)
+
+def feature_space_mean_squared_error(y_true, y_pred, model_filename=None, layer=None):
+    """
+    mean squared error on a feature space defined by a model
+
+    Parameters
+    ----------
+
+    model_filename : str
+        filename of the model to load (should be a .h5 keras model)
+    layer : str
+        layer to use. raises an exception when the layer does not exist.
+    """
+    if model_filename is None or layer is None:
+        warnings.warn('In case you are willing to train this model, please specify `model_filename` and `layer` in the parameters of the loss.'
+                       'In case you will just use the model, it is fine. When loading a model with keras through `load_model` '
+                       'the parameters of the loss functions do not get passsed, so if you are just willing to use the model'
+                       'it is fine', RuntimeWarning)
+        return dummy(y_true, y_pred)
+    model = load_model(model_filename)
+    layer_names = set([lay.name for lay in model.layers])
+    if layer not in layer_names:
+        raise ValueError('layer {} does not exist, available layers are : {}'.format(layer, layer_names))
+    model_layer = Model(input=model.layers[0].input, output=model.get_layer(layer).output)
+    model_layer.trainable = False
+    return mean_squared_error(model_layer(y_true), model_layer(y_pred)).mean()
 
 def axis_categorical_crossentropy(y_true, y_pred, axis=1):
     """
@@ -62,23 +88,16 @@ def axis_categorical_crossentropy(y_true, y_pred, axis=1):
     ypr = ypr.T
     return K.categorical_crossentropy(ypr, yt).mean()
 
-def feature_space_mean_squared_error(y_true, y_pred, model_filename=None, layer=None):
-    """mean squared error on a feature space defined by a model"""
-    if model_filename is None or layer is None:
-        warnings.warn('In case you are willing to train this model, please specify `model_filename` and `layer` in the parameters of the loss.'
-                       'In case you will just use the model, it is fine. When loading a model with keras through `load_model` '
-                       'the parameters of the loss functions do not get passsed, so if you are just willing to use the model'
-                       'it is fine', RuntimeWarning)
-        return dummy(y_true, y_pred)
-    model = load_model(model_filename)
-    model_layer = Model(input=model.layers[0].input, output=model.get_layer(layer).output)
-    model_layer.trainable = False
-    return mean_squared_error(model_layer(y_true), model_layer(y_pred)).mean()
-
 def objectness(y_true, y_pred, model_filename=None):
     """
     Compute the objectness [1] score based on a classifier in `model_filename`.
     this loss does not use `y_true`, it only uses the classifier and `y_pred`.
+
+    Parameters
+    ----------
+
+    model_filename : str
+        filename of the model to load (should be a .h5 keras model)
 
     References
     ----------
@@ -137,8 +156,13 @@ custom_objectives = {
     'objectness': objectness,
     'sum': loss_sum,
     'loss_sum': loss_sum,
+    # 'loss_aggregate' is used to multi_interface as evaluator loss.
+    #  it is set to dummy when calling keras load_model
     'loss_aggregate': dummy
 }
+
+objectives = object_to_dict(objectives)
+objectives.update(custom_objectives)
 
 def get_loss(loss, objectives=objectives):
     """
@@ -163,21 +187,14 @@ def get_loss(loss, objectives=objectives):
     if isinstance(loss, dict):
         name = loss['name']
         params = loss['params']
-        try:
-            func = custom_objectives[name]
-        except KeyError:
-            func = getattr(objectives, name)
+        func = objectives[name]
         orig_name = func.__name__
         func = partial(func, **params)
         func.__name__ = orig_name
-        # keras requests the __name__ of the func, this
+        # keras requests and uses the __name__ of the func (for serialization), this
         # is why I do this.
         return func
     # assume loss is a str
     else:
-        try:
-            func = custom_objectives[loss]
-        except KeyError:
-            return getattr(objectives, loss)
-        else:
-            return func
+        func = objectives[loss]
+        return func

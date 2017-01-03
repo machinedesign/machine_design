@@ -1,13 +1,44 @@
 from keras.layers import Input
 from keras.models import Model
 
+from ..layers import Convolution2D
+from ..layers import UpConv2D
+
 from ..common import activation_function
 from ..common import conv2d_layers
-from ..common import Convolution2D
-from ..common import UpConv2D
 from ..common import check_model_shape_or_exception
 
 def convolutional_bottleneck(params, input_shape, output_shape):
+    """
+    conv1->conv2->...conv_h -> code_activations(conv_h)...-> conv_n
+
+    form 1 to h : pad='valid' or pad='same' if stride > 1
+    from h + 1 to n : pad='full' or pad='same' if stride >
+    1
+    params
+    ------
+
+    stride : int
+        stride to use in all layers
+        in encode layers, it behaves as a downscaler.
+        in decode layers, it behaves as upscaler.
+    encode_nb_filters : list of int
+        nb filters of encoder
+    encode_filter_sizes : list of int
+        filter sizes of encoder
+    encode_activations : list of str
+
+    code_activations : list of str
+        list of activations to apply to the bottleneck layer
+
+    decode_nb_filters : list of int
+        nb filters of decoder
+    decode_filter_sizes : list of int
+        filter sizes of decoder
+    decode_activations : list of str
+        activations of decoder
+
+    """
     assert input_shape == output_shape
     nb_channels = input_shape[0]
 

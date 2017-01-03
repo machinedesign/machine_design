@@ -5,7 +5,6 @@ used to report results of the models.
 from functools import partial
 import numpy as np
 
-
 def horiz_merge(left, right):
     """
     merges two images, left and right horizontally to obtain

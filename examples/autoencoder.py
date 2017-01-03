@@ -10,17 +10,18 @@ def main():
     params = {
         'family': 'autoencoder',
         'model': {
-            'name': 'convolutional_bottleneck',
+            'name': 'fully_connected',
             'params':{
-            'fully_connected_nb_hidden_units_list': [500],
-            'fully_connected_activations': ['relu'],
-            'output_activation': 'sigmoid',
-            'input_noise':{
-                'name': 'gaussian',
-                'params': {
-                    'std': 1
-                }
-            },
+                'nb_hidden_units': [10],
+                'activations': ['relu'],
+                'output_activation': 'sigmoid',
+                'input_noise':{
+                    'name': 'gaussian',
+                    'params': {
+                        'std': 1
+                    }
+                },
+            }
         },
         'data': {
             'train': {
@@ -69,7 +70,7 @@ def main():
             'loss': 'binary_crossentropy',
             'budget_secs': 3600,
             'seed': 42
-        },
+        }
     }
     train(params)
     params = {

@@ -1,18 +1,14 @@
 import os
 import numpy as np
-try:
-    from itertools import imap
-except ImportError:
-    imap = map
+from six.moves import map
 
 from keras.layers import Input
 from keras.models import Model
 
-from machinedesign.multi_interface import train
 from machinedesign import model_builders
-from machinedesign.common import object_to_dict
-from machinedesign.common import Normalize
-
+from machinedesign.multi_interface import train
+from machinedesign.utils import object_to_dict
+from machinedesign.layers import Normalize
 from machinedesign.callbacks import DoEachEpoch
 from machinedesign.autoencoder.interface import _report_image_reconstruction
 from machinedesign.autoencoder.interface import _report_image_features
@@ -54,7 +50,7 @@ def build_data_generator(pipeline, cols='all'):
     def _gen(batch_size, repeat=False):
         it = pipeline_load(pipeline)
         it = batch_iterator(it, batch_size=batch_size, repeat=repeat, cols=cols)
-        it = imap(_apply, it)
+        it = map(_apply, it)
         return it
     return _gen
 

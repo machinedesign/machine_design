@@ -3,14 +3,12 @@ import os
 import numpy as np
 import time
 from functools import partial
-try:
-    from itertools import imap
-except ImportError:
-    imap = map
+from six.moves import map
 
 from .common import build_optimizer
-from .common import mkdir_path
 from .common import show_model_info
+
+from .utils import mkdir_path
 
 from .objectives import get_loss
 from .data import pipeline_load
@@ -42,9 +40,6 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-__all__ = [
-    "train",
-]
 
 def train(params, builders={}, inputs='X', outputs='y', logger=logger, callbacks=[]):
     """
@@ -92,7 +87,7 @@ def train(params, builders={}, inputs='X', outputs='y', logger=logger, callbacks
     def transformers_data_generator():
         it = pipeline_load(train_pipeline)
         it = batch_iterator(it, batch_size=batch_size, repeat=False, cols=[inputs])
-        it = imap(lambda d:d[inputs], it)
+        it = map(lambda d:d[inputs], it)
         return it
 
     fit_transformers(
@@ -120,7 +115,7 @@ def train(params, builders={}, inputs='X', outputs='y', logger=logger, callbacks
     def train_data_generator(batch_size=batch_size, repeat=False):
         it = pipeline_load(train_pipeline)
         it = batch_iterator(it, batch_size=batch_size, repeat=repeat, cols=[inputs, outputs])
-        it = imap(partial(dict_apply, fn=apply_transformers, cols=[inputs]), it)
+        it = map(partial(dict_apply, fn=apply_transformers, cols=[inputs]), it)
         return it
     iterators['train'] = train_data_generator
 
@@ -243,7 +238,7 @@ def _update_history(model, logs):
 def _build_compute_func(predict, data_generator, metric,
                         inputs='X', outputs='y',
                         aggregate=np.mean):
-    get_real_and_pred = lambda: imap(lambda data: (data[inputs], predict(data[inputs])), data_generator())
+    get_real_and_pred = lambda: map(lambda data: (data[inputs], predict(data[inputs])), data_generator())
     compute_func = lambda: aggregate(compute_metric(get_real_and_pred, metric))
     return compute_func
 

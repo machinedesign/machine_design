@@ -8,17 +8,23 @@ from skimage.io import imsave
 from keras.models import load_model
 
 from ..data import floatX
+from ..data import minibatcher
+
 from ..interface import train as train_basic
-from ..common import object_to_dict
-from ..common import mkdir_path
-from ..common import minibatcher
+
 from ..common import check_family_or_exception
 from ..common import custom_objects
+
+from ..utils import object_to_dict
+from ..utils import mkdir_path
+
 from ..viz import reshape_to_images
 from ..viz import grid_of_images_default
 from ..viz import horiz_merge
+
 from ..callbacks import DoEachEpoch
 from ..transformers import inverse_transform_one
+
 from .. import model_builders
 from . import model_builders as model_builders_autoencoder
 

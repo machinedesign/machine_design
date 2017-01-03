@@ -1,3 +1,13 @@
+"""
+Basic model builders.
+model builders are functions that take specifications of architectures
+as a dict, input and output shape, and it return a keras Model.
+The model is a function that takes an input tensor and returns an output tensor.
+Model builders are specifically designed for hyper-parameter optimization,
+hence the use of dict to parametrize its architecture.
+We note that the architecture should be independent of input and output shapes,
+this is the reason why I put them outside the specification of the architecture.
+"""
 from functools import partial
 
 import numpy as np
@@ -9,18 +19,20 @@ from keras.layers import Input
 from keras.layers import Reshape
 from keras.models import Model
 
+from .layers import Convolution2D
+from .layers import UpConv2D
+
 from .common import activation_function
 from .common import fully_connected_layers
 from .common import noise
 from .common import conv2d_layers
-from .common import Convolution2D
-from .common import UpConv2D
 from .common import check_model_shape_or_exception
 
 def fully_connected(params, input_shape, output_shape):
     """
     stack of fully connected layers
 
+    input -> noise(input) -> fc1 -> fc2 -> ... -> output
     params
     ------
     nb_hidden_units : list of int
@@ -57,6 +69,9 @@ def _fully_connected_stack(x, params):
 
 def convolutional(params, input_shape, output_shape):
     """
+
+    input -> conv1 -> conv2 -> ... -> global average pooling (if output is a matrix) -> output
+
     params
     ------
 
@@ -120,6 +135,8 @@ def _upconvolutional_stack(x, params):
 
 def fc_upconvolutional(params, input_shape, output_shape):
     """
+
+    input -> fc1 -> fc2 -> ... -> fc_n -> reshape -> conv1 -> conv2 -> ... -> output
     params
     ------
 

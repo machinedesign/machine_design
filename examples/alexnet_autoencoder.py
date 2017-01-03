@@ -12,6 +12,7 @@ from machinedesign.multi_interface import train
 from machinedesign import model_builders
 from machinedesign.common import object_to_dict
 from machinedesign.common import Normalize
+
 from machinedesign.callbacks import DoEachEpoch
 from machinedesign.autoencoder.interface import _report_image_reconstruction
 from machinedesign.autoencoder.interface import _report_image_features
@@ -44,7 +45,6 @@ def build_alexnet_model(layer, input_shape=(3, 227, 227)):
     model = Model(input=inp, output=out)
     return model
 
-
 def build_data_generator(pipeline, cols='all'):
     model = build_alexnet_model('dense_1')
     def _apply(data):
@@ -58,23 +58,27 @@ def build_data_generator(pipeline, cols='all'):
     return _gen
 
 if __name__ == '__main__':
-
+    leaky_relu = {'name': 'leaky_relu', 'params':{'alpha': 0.3}}
     models = [
         {
             'name': 'autoencoder',
             'input_col': 'h',
             'output_col': 'X',
             'architecture': {
-                'name': 'fully_connected',
+                'name': 'fc_upconvolutional',
                 'params':{
-                    'fully_connected_nb_hidden_units_list': [1000, 1000],
-                    'fully_connected_activations': [{'name': 'leaky_relu', 'params':{'alpha': 0.3}}] * 2,
+                    'fully_connected': {
+                        'nb_hidden_units': [512],
+                        'activations': [leaky_relu]
+                    },
+                    'reshape': [8, 8, 8],
+                    'upconvolutional':{
+                        'nb_filters': [16, 16, 32, 32, 64],
+                        'filter_sizes': [5, 5, 5, 5, 5],
+                        'activations': [leaky_relu] * 5,
+                        'stride': 2
+                    },
                     'output_activation': 'sigmoid',
-                    'input_noise':{
-                        'name': 'none',
-                        'params': {
-                        }
-                    }
                 },
             },
             'evaluators':[
@@ -83,16 +87,14 @@ if __name__ == '__main__':
                     'input_col': 'X',
                     'type': 'discriminator',
                     'architecture': {
-                        'name': 'fully_connected',
-                        'params': {
-                            'fully_connected_nb_hidden_units_list': [100],
-                            'fully_connected_activations': [{'name': 'leaky_relu', 'params':{'alpha': 0.3}}],
+                        'name': 'convolutional',
+                        'params':{
+                            'nb_filters': [16, 16, 32, 32, 64],
+                            'filter_sizes': [5, 5, 5, 5, 5],
+                            'activations': [leaky_relu] * 5,
                             'output_activation': 'sigmoid',
-                            'input_noise':{
-                                'name': 'none',
-                                'params': {
-                                }
-                            }
+                            'output_filter_size': 1,
+                            'stride': 2
                         },
                     },
                     'optimizer':{

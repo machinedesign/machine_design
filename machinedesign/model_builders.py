@@ -130,7 +130,7 @@ def _upconvolutional_stack(x, params):
         activations=activations,
         border_mode='full' if stride == 1 else 'same',
         stride=stride,
-        conv_layer=UpConv2D)
+        conv_layer=UpConv2D if stride > 1 else Convolution2D)
     return x
 
 def fc_upconvolutional(params, input_shape, output_shape):

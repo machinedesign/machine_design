@@ -20,7 +20,7 @@ from datakit.helpers import dict_apply
 from keras.models import Model
 
 def _pipeline_load_numpy(iterator, filename,
-                         cols=['X', 'y'],
+                         cols=['X'],
                          start=0, nb=None, shuffle=False,
                          random_state=None):
     """
@@ -94,7 +94,7 @@ def _pipeline_load_hdf5(iterator, filename,
                 yield p
     return iter_func()
 
-def _iterate(data, start=0, nb=None, cols=['X', 'y']):
+def _iterate(data, start=0, nb=None, cols=['X']):
     it = {}
     for c in cols:
         d = data[c]

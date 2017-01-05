@@ -128,7 +128,7 @@ def conv2d_layers(x, nb_filters, filter_sizes, activations,
 
 def conv1d_layers(x, nb_filters, filter_sizes, activations,
                   init='glorot_uniform', border_mode='valid',
-                  stride=1, conv_layer=Convolution1D):
+                  conv_layer=Convolution1D):
     """
     Apply a stack of 1D convolutions to a layer `x`
 
@@ -147,8 +147,6 @@ def conv1d_layers(x, nb_filters, filter_sizes, activations,
         init method used in all layers
     border_mode : str
         padding type to use in all layers
-    stride : int
-        stride to use
     conv_layer : keras layer class
         keras layer to use from convolution
 
@@ -159,7 +157,7 @@ def conv1d_layers(x, nb_filters, filter_sizes, activations,
     """
     assert len(nb_filters) == len(filter_sizes) == len(activations)
     for nb_filter, filter_size, act in zip(nb_filters, filter_sizes, activations):
-        x = conv_layer(nb_filter, filter_size, init=init, border_mode=border_mode, subsample=(stride, stride))(x)
+        x = conv_layer(nb_filter, filter_size, init=init, border_mode=border_mode)(x)
         x = activation_function(act)(x)
     return x
 

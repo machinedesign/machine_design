@@ -29,6 +29,12 @@ def mean_squared_error(y_true, y_pred):
     y_pred = y_pred.flatten(2)
     return K.mean(K.square(y_pred - y_true), axis=1)
 
+def categorical_crossentropy(y_true, y_pred):
+    """categorical crossentropy (mean over all axes except the first)"""
+    y_true = y_true.flatten(2)
+    y_pred = y_pred.flatten(2)
+    return K.categorical_crossentropy(y_pred, y_true)
+
 def feature_space_mean_squared_error(y_true, y_pred, model_filename=None, layer=None):
     """
     mean squared error on a feature space defined by a model
@@ -158,7 +164,8 @@ custom_objectives = {
     'loss_sum': loss_sum,
     # 'loss_aggregate' is used to multi_interface as evaluator loss.
     #  it is set to dummy when calling keras load_model
-    'loss_aggregate': dummy
+    'loss_aggregate': dummy,
+    'categorical_crossentropy': categorical_crossentropy
 }
 
 objectives = object_to_dict(objectives)

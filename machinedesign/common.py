@@ -159,7 +159,7 @@ def conv1d_layers(x, nb_filters, filter_sizes, activations,
     """
     assert len(nb_filters) == len(filter_sizes) == len(activations)
     for nb_filter, filter_size, act in zip(nb_filters, filter_sizes, activations):
-        x = conv_layer(nb_filter, filter_size, filter_size, init=init, border_mode=border_mode, subsample=(stride, stride))(x)
+        x = conv_layer(nb_filter, filter_size, init=init, border_mode=border_mode, subsample=(stride, stride))(x)
         x = activation_function(act)(x)
     return x
 

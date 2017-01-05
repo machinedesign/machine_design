@@ -8,7 +8,11 @@ from keras.layers import Activation
 from keras.layers import Dense
 from keras.layers import Layer
 from keras.layers import Convolution2D
+from keras.layers import Convolution1D
 from keras.layers import GaussianNoise
+from keras.layers import LSTM
+from keras.layers import GRU
+from keras.layers import SimpleRNN
 from keras.engine.training import Model
 from keras import optimizers
 
@@ -122,6 +126,49 @@ def conv2d_layers(x, nb_filters, filter_sizes, activations,
         x = activation_function(act)(x)
     return x
 
+def conv1d_layers(x, nb_filters, filter_sizes, activations,
+                  init='glorot_uniform', border_mode='valid',
+                  stride=1, conv_layer=Convolution1D):
+    """
+    Apply a stack of 1D convolutions to a layer `x`
+
+    Parameters
+    ----------
+
+    x : keras layer
+    nb_filters : list of int
+        nb of filters/feature_maps per layer
+    filter_sizes : list of int
+        size of (square) filters per layer
+    activations : str
+        list of activation functions for each layer
+        (should be the same size than nb_hidden_units)
+    init : str
+        init method used in all layers
+    border_mode : str
+        padding type to use in all layers
+    stride : int
+        stride to use
+    conv_layer : keras layer class
+        keras layer to use from convolution
+
+    Returns
+    -------
+
+    keras layer
+    """
+    assert len(nb_filters) == len(filter_sizes) == len(activations)
+    for nb_filter, filter_size, act in zip(nb_filters, filter_sizes, activations):
+        x = conv_layer(nb_filter, filter_size, filter_size, init=init, border_mode=border_mode, subsample=(stride, stride))(x)
+        x = activation_function(act)(x)
+    return x
+
+rnn_classes = {'GRU': GRU, 'LSTM': LSTM, 'RNN': SimpleRNN}
+def rnn_stack(x, nb_hidden_units, rnn_type='GRU'):
+    rnn_class = rnn_classes[rnn_type]
+    for nb_units in nb_hidden_units:
+        x = rnn_class(nb_units, return_sequences=True)(x)
+    return x
 
 
 def build_optimizer(algo_name, algo_params):

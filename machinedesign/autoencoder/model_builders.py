@@ -138,7 +138,8 @@ def rnn_rnn_autoencoder(params, input_shape, output_shape):
     x = Dense(latent_size, name='latent')(x)
     x = RepeatVector(max_length)(x)
     x = rnn_stack(x, decode_nb_hidden_units, rnn_type=rnn_type)
-    out = TimeDistributed(Dense(output_shape[1], activation=output_activation))(x)
+    x = TimeDistributed(Dense(output_shape[1]))(x)
+    out = activation_function(output_activation)(x)
     model = Model(input=inp, output=out)
     check_model_shape_or_exception(model, output_shape)
     return model

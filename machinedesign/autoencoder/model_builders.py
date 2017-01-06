@@ -13,6 +13,7 @@ from ..common import activation_function
 from ..common import conv2d_layers
 from ..common import conv1d_layers
 from ..common import check_model_shape_or_exception
+from ..common import fully_connected_layers
 
 def convolutional_bottleneck(params, input_shape, output_shape):
     """
@@ -100,7 +101,8 @@ def convolutional_rnn_autoencoder(params, input_shape, output_shape):
     encode_nb_filters = params['encode_nb_filters']
     encode_filter_sizes = params['encode_filter_sizes']
     encode_activations = params['encode_activations']
-    latent_size = params['latent_size']
+    latent_nb_hidden_units = params['latent_nb_hidden_units']
+    latent_activations = params['latent_activations']
     decode_nb_hidden_units = params['decode_nb_hidden_units']
     output_activation = params['output_activation']
     rnn_type = params['rnn_type']
@@ -113,7 +115,7 @@ def convolutional_rnn_autoencoder(params, input_shape, output_shape):
         encode_filter_sizes,
         encode_activations)
     x = Flatten()(x)
-    x = Dense(latent_size, name='latent')(x)
+    x = fully_connected_layers(x, latent_nb_hidden_units, latent_activations)
     x = RepeatVector(max_length)(x)
     x = rnn_stack(x, decode_nb_hidden_units, rnn_type=rnn_type)
     x = TimeDistributed(Dense(output_shape[1]))(x)
@@ -128,7 +130,8 @@ def rnn_rnn_autoencoder(params, input_shape, output_shape):
 
     rnn_type = params['rnn_type']
     encode_nb_hidden_units = params['encode_nb_hidden_units']
-    latent_size = params['latent_size']
+    latent_nb_hidden_units = params['latent_nb_hidden_units']
+    latent_activations = params['latent_activations']
     decode_nb_hidden_units = params['decode_nb_hidden_units']
     output_activation = params['output_activation']
 
@@ -136,7 +139,7 @@ def rnn_rnn_autoencoder(params, input_shape, output_shape):
     x = inp
     x = rnn_stack(x, encode_nb_hidden_units, rnn_type=rnn_type)
     x = Flatten()(x)
-    x = Dense(latent_size, name='latent')(x)
+    x = fully_connected_layers(x, latent_nb_hidden_units, latent_activations)
     x = RepeatVector(max_length)(x)
     x = rnn_stack(x, decode_nb_hidden_units, rnn_type=rnn_type)
     x = TimeDistributed(Dense(output_shape[1]))(x)

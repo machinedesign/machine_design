@@ -1,13 +1,12 @@
 """
 In this module I provide common keras layers used in the framework.
 """
-import numpy as np
-
 import keras.backend as K
 from keras.layers import Layer
 from keras.layers import LeakyReLU
 from keras.layers import Convolution2D
 
+from .utils import get_axis
 from .data import floatX
 
 class ksparse(Layer):
@@ -139,7 +138,7 @@ class axis_softmax(Layer):
     """
     def __init__(self, axis=1, **kwargs):
         super(axis_softmax, self).__init__(**kwargs)
-        self.axis = axis
+        self.axis = get_axis(axis)
 
     def call(self, X, mask=None):
         e_X = K.exp(X - X.max(axis=self.axis, keepdims=True))

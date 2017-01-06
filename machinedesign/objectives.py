@@ -14,6 +14,7 @@ from keras.models import load_model
 from keras.models import Model
 
 from .utils import object_to_dict
+from .utils import get_axis
 
 def dummy(y_true, y_pred):
     """
@@ -83,7 +84,7 @@ def axis_categorical_crossentropy(y_true, y_pred, axis=1):
 
     vector
     """
-    yt = y_true.argmax(axis=axis) # supposed to be onehot in the axis 'axis'
+    yt = y_true.argmax(axis=get_axis(axis)) # supposed to be onehot in the axis 'axis'
     yt = yt.flatten()#convert it to a vector
     perm = list(range(y_pred.ndim))
     # permute 'axis' and the first axis

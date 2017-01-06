@@ -35,3 +35,14 @@ def write_csv(iterable, filename):
         writer = csv.DictWriter(f, fieldnames=iterable[0].keys())
         writer.writeheader()
         writer.writerows(iterable)
+
+
+axes = {
+    'time': 1,
+    'channels': 1,
+    'height': 2,
+    'width': 3
+}
+
+def get_axis(axis):
+    return axes.get(axis, axis)

@@ -2,7 +2,6 @@
 This module contains some common functions used in models
 """
 from __future__ import division
-import numpy as np
 
 from keras.layers import Activation
 from keras.layers import Dense

@@ -17,6 +17,14 @@ def binary_crossentropy(y_true, y_pred, eps=1e-5):
     score = -(y_true * np.log(y_pred) + (1 - y_true) * np.log(1 - y_pred))
     return score.mean(axis=axes)
 
+def categorical_crossentropy(y_true, y_pred):
+    """ categorical crossentropy"""
+    y_true = y_true.reshape((y_true.shape[0], -1))
+    y_true = y_true.argmax(axis=1)
+    y_pred = y_pred.reshape((y_pred.shape[0], -1))
+    return -np.log(y_pred[np.arange(len(y_pred)), y_true])
+
+
 def compute_metric(get_true_and_pred, metric):
     """
     compute a metric using an iterator and true and predicted values

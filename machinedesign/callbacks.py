@@ -13,42 +13,6 @@ from keras.callbacks import Callback
 class Dummy(Callback):
     pass
 
-class CallbackContainer(Callback):
-    """
-    a callback class that can contain a list of callback instances.
-
-    Parameters
-    ----------
-        callbacks : list of Callback
-    """
-    def __init__(self, callbacks):
-        self.callbacks = callbacks
-
-    def on_train_begin(self, logs={}):
-        for cb in self.callbacks:
-            cb.on_train_begin(logs)
-
-    def on_train_end(self, logs={}):
-        for cb in self.callbacks:
-            cb.on_train_ends(logs)
-
-    def on_epoch_begin(self, epoch, logs={}):
-        for cb in self.callbacks:
-            cb.on_epoch_begin(epoch, logs)
-
-    def on_epoch_end(self, epoch, logs={}):
-        for cb in self.callbacks:
-            cb.on_epoch_end(epoch, logs)
-
-    def on_batch_begin(self, batch, logs={}):
-        for cb in self.callbacks:
-            cb.on_batch_begin(batch, logs)
-
-    def on_batch_end(self, batch, logs={}):
-        for cb in self.callbacks:
-            cb.on_batch_end(batch, logs)
-
-
 class EarlyStopping(Callback):
     '''
 

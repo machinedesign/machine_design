@@ -178,10 +178,9 @@ def get_loss(loss, objectives=objectives):
     `loss` can either be a string, and in that case, it will correspond
     the name of the loss. In case the loss has itself parameters, a dict
     can be passed instead of a str, thus `loss` can be a dict.
-    If `loss` is a dict, then it should have a key `name` and a keys `params`.
-    On both cases, if the name is one of the keys defined in `custom_objectives`,
-    then use it. if not, search in `objectives`.
-    if it does not find in either of these, it will return an exception.
+    If `loss` is a dict, then it should have a key `name` and a key `params`.
+    On both cases (`loss` is a str or dict), if the name is one of the keys
+    defined in `objectives`, then use it, if not, raise an exception.
 
     Parameters
     ----------
@@ -189,8 +188,11 @@ def get_loss(loss, objectives=objectives):
     loss : str or dict
         loss to use, see the description above to know when to use
         str and when to use dict.
-    objectives : object
-        object (e.g module) containing objectives (by default it is `keras.objectives`)
+    objectives : dict
+        dict containing available objective functions, keys are
+        objective names, values are objective functions.
+        By default, `objectives` contain all keras objectives with additional
+        custom objectives defined in the objectives module.
     """
     if isinstance(loss, dict):
         name = loss['name']

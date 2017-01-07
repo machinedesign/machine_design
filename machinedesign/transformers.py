@@ -214,9 +214,10 @@ def make_transformers_pipeline(transformer_list, transformers=transformers):
     transformer_list : list of dict
         each dict has two keys, `name` and `params`.
         `name` is the name of the Transformer.
-        `params` are the parameters of the __init__ of the Transformer.
+        `params` are the parameters used for the __init__ of the Transformer.
         available transformers :
-            - 'Standardize'.
+            - 'Standardize'
+            - 'ColorDiscretizer'
 
     Returns
     -------

@@ -22,7 +22,6 @@ from .data import dict_apply
 from .data import operators
 from .data import floatX
 
-from .callbacks import CallbackContainer
 from .callbacks import BudgetFinishedException
 from .callbacks import StopTrainingException
 from .callbacks import TimeBudget

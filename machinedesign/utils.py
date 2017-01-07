@@ -47,4 +47,5 @@ axes = {
 }
 
 def get_axis(axis):
+    """ get axis index from a human readable name"""
     return axes.get(axis, axis)

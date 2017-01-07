@@ -137,6 +137,7 @@ def fc_upconvolutional(params, input_shape, output_shape):
     """
 
     input -> fc1 -> fc2 -> ... -> fc_n -> reshape -> conv1 -> conv2 -> ... -> output
+    
     params
     ------
 

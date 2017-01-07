@@ -1,7 +1,6 @@
 import pytest
 
 from machinedesign.callbacks import Callback
-from machinedesign.callbacks import CallbackContainer
 from machinedesign.callbacks import lr_schedule_constant
 from machinedesign.callbacks import lr_schedule_decrease_when_stop_improving
 from machinedesign.callbacks import lr_schedule_decrease_every
@@ -25,33 +24,6 @@ class Store(Callback):
 
     def on_batch_end(self, batch, logs={}):
         self.actions.append('{}_batch_end'.format(self.caption))
-
-def test_callback_container():
-    cb1, cb2 = Store(caption=1), Store(caption=2)
-    callbacks = [cb1, cb2]
-    callbacks = CallbackContainer(callbacks)
-
-    callbacks.on_epoch_begin(1, logs={'a': 5})
-    assert cb1.actions == ['1_epoch_begin']
-    assert cb2.actions == ['2_epoch_begin']
-
-    callbacks.on_epoch_end(1, logs={'a': 5})
-    assert cb1.actions == ['1_epoch_begin', '1_epoch_end']
-    assert cb2.actions == ['2_epoch_begin', '2_epoch_end']
-
-    callbacks.on_batch_begin(1, logs={'a': 5})
-    assert cb1.actions == ['1_epoch_begin', '1_epoch_end', '1_batch_begin']
-    assert cb2.actions == ['2_epoch_begin', '2_epoch_end', '2_batch_begin']
-
-    callbacks.on_batch_end(1, logs={'a': 5})
-    assert cb1.actions == ['1_epoch_begin', '1_epoch_end', '1_batch_begin', '1_batch_end']
-    assert cb2.actions == ['2_epoch_begin', '2_epoch_end', '2_batch_begin', '2_batch_end']
-
-    callbacks = CallbackContainer([])
-    callbacks.on_epoch_begin(1, logs={'a': 5})
-    callbacks.on_epoch_end(1, logs={'a': 5})
-    callbacks.on_batch_begin(1, logs={'a': 5})
-    callbacks.on_batch_end(1, logs={'a': 5})
 
 def test_learning_rate_scheduler_constant():
     assert lr_schedule_constant(0.5) == 0.5

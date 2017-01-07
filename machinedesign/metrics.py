@@ -18,7 +18,14 @@ def binary_crossentropy(y_true, y_pred, eps=1e-5):
     return score.mean(axis=axes)
 
 def categorical_crossentropy(y_true, y_pred):
-    """ categorical crossentropy"""
+    """
+    categorical crossentropy that can work for any tensors
+    y_true and y_pred should have the same shape.
+    y_true and y_pred are first squeezed to be a matrix
+    e.g if they are (nb_examples, timesteps, features) then they
+    are converted to (nb_examples, timesteps * features).
+    After that, the classical categorical crossentropy is applied on the matrices.
+    """
     y_true = y_true.reshape((y_true.shape[0], -1))
     y_true = y_true.argmax(axis=1)
     y_pred = y_pred.reshape((y_pred.shape[0], -1))

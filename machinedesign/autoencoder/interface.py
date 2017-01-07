@@ -43,14 +43,14 @@ default_config = default_config._replace(model_builders=model_builders)
 def train(params, config=default_config, custom_callbacks=[], logger=logger):
     check_family_or_exception(params['family'], 'autoencoder')
     # Callbacks
+    report_callback_names = params['report'].get('callbacks', [])
     report_callbacks = []
-    domain_specific = params['report'].get('domain_specific')
-    if domain_specific:
-        if 'image_reconstruction' in domain_specific:
+    if report_callbacks:
+        if 'image_reconstruction' in report_callbacks:
             cb = DoEachEpoch(_report_image_reconstruction)
             cb.outdir = params['report']['outdir']
             report_callbacks.append(cb)
-        if 'image_features' in domain_specific:
+        if 'image_features' in report_callbacks:
             cb = DoEachEpoch(_report_image_features)
             cb.outdir = params['report']['outdir']
             report_callbacks.append(cb)

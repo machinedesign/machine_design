@@ -42,7 +42,7 @@ params_test = {
             'save_best_only': True
         },
         'metrics': ['mean_squared_error'],
-        'domain_specific': ['image_reconstruction']
+        'callbacks': ['image_reconstruction']
     },
     'optim':{
         'algo': {

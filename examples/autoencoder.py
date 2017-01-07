@@ -28,11 +28,14 @@ def main():
         'data': {
             'train': {
                 'pipeline':[
-                    {"name": "toy", "params": {"nb": 128, "w": 8, "h": 8, "pw": 2, "ph": 2, "nb_patches": 2, "random_state": 42}},
-                    {"name": "shuffle", "params": {"random_state": 42}},
-                    {"name": "normalize_shape", "params": {}},
-                    {"name": "divide_by", "params": {"value": 255}},
-                    {"name": "order", "params": {"order": "th"}}
+                {"name": "toy",
+                 "params": {"nb": 128, "w": 16, "h": 16,
+                            "pw": 2, "ph": 2,
+                            "nb_patches": 2, "random_state": 42}},
+                {"name": "shuffle", "params": {"random_state": 42}},
+                {"name": "normalize_shape", "params": {}},
+                {"name": "divide_by", "params": {"value": 255}},
+                {"name": "order", "params": {"order": "th"}}
                 ]
             },
             'transformers':[
@@ -45,7 +48,7 @@ def main():
                 'save_best_only': True
             },
             'metrics': ['mean_squared_error'],
-            'domain_specific': ['image_reconstruction', 'image_features']
+            'callbacks': ['image_reconstruction', 'image_features']
         },
         'optim':{
             'algo': {

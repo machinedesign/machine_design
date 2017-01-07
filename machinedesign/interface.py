@@ -17,6 +17,7 @@ from .data import get_nb_minibatches
 from .data import get_shapes
 from .data import batch_iterator
 from .data import dict_apply
+from .data import operators
 
 from .callbacks import CallbackContainer
 from .callbacks import BudgetFinishedException
@@ -30,6 +31,7 @@ from .callbacks import build_lr_schedule_callback
 from .transformers import make_transformers_pipeline
 from .transformers import transform_one
 from .transformers import fit_transformers
+from .transformers import transformers
 
 from . import metrics as metric_functions
 from .metrics import compute_metric
@@ -41,7 +43,16 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-def train(params, builders={}, inputs='X', outputs='y', logger=logger, callbacks=[]):
+def train(params, 
+          inputs='X', outputs='y', 
+          logger=logger, 
+          callbacks=[],
+
+          model_builder={},
+          transformers=transformer,
+          transformers=transformers,
+          builder={},
+          data_operators=operators)
     """
     Generic training procedure to train a mapping from some inputs
     to some outputs. You can use this for most kind of models (e.g autoencoders,
@@ -83,7 +94,7 @@ def train(params, builders={}, inputs='X', outputs='y', logger=logger, callbacks
     train_pipeline = data['train']['pipeline']
 
     logger.info('Fitting transformers on training data...')
-    transformers = make_transformers_pipeline(data['transformers'])
+    transformers = make_transformers_pipeline(data['transformers'], transformer=transformers)
     def transformers_data_generator():
         it = pipeline_load(train_pipeline)
         it = batch_iterator(it, batch_size=batch_size, repeat=False, cols=[inputs])

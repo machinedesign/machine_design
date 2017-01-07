@@ -44,7 +44,8 @@ def _pipeline_load_numpy(iterator, filename,
     random_state : int(default=None)
     """
     rng = np.random.RandomState(random_state)
-    filename = os.path.join(os.getenv('DATA_PATH'), filename)
+    if not filename.startswith('.'):
+        filename = os.path.join(os.getenv('DATA_PATH'), filename)
     data = np.load(filename)
     if shuffle:
         indices = np.arange(len(data[cols[0]]))
@@ -56,7 +57,7 @@ def _pipeline_load_numpy(iterator, filename,
     return _iterate(data, start=start, nb=nb, cols=cols)
 
 def _pipeline_load_hdf5(iterator, filename,
-                        cols=['X', 'y'],
+                        cols=['X'],
                         start=0, nb=None, buffer_size=128):
     """
     Operator to load hdf5 files
@@ -79,9 +80,11 @@ def _pipeline_load_hdf5(iterator, filename,
     random_state : int(default=None)
 
     """
-    filename = os.path.join(os.getenv('DATA_PATH'), filename)
-    hf = h5py.File(filename)
-
+    if not filename.startswith('.'):
+        filename = os.path.join(os.getenv('DATA_PATH'), filename)
+    hf = h5py.File(filename, 'r')
+    if nb is None:
+        nb = hf[cols[0]].shape[0]
     def iter_func():
         for i in range(start, start + nb, buffer_size):
             d = {}
@@ -184,8 +187,11 @@ def get_nb_samples(pipeline):
         return 0
     p = pipeline[0:1]
     p = pipeline_load(p)
-    p = list(p)
-    return len(p)
+    if hasattr(p, 'shape'):
+        return p.shape[0]
+    else:
+        p = list(p)
+        return len(p)
 
 def get_shapes(sample):
     """
@@ -249,7 +255,6 @@ def batch_iterator(iterator, batch_size=128, repeat=True, cols=['X', 'y']):
 
     iterator = minibatch(iterator, batch_size=batch_size)
     iterator = expand_dict(iterator)
-    iterator = map(partial(dict_apply, fn=floatX, cols=cols), iterator)
     if cols:
         iterator = map(lambda data: {c: data[c] for c in cols}, iterator)
     if repeat:

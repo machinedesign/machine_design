@@ -36,7 +36,7 @@ model_builders_autoencoder = object_to_dict(model_builders_autoencoder)
 model_builders.update(model_builders_autoencoder)
 
 
-def train(params):
+def train(params, **kw):
     check_family_or_exception(params['family'], 'autoencoder')
     # Callbacks
     report_callbacks = []
@@ -51,12 +51,14 @@ def train(params):
             cb.outdir = params['report']['outdir']
             report_callbacks.append(cb)
     # Call training functions
+    input_col = params.get('input_col', 'X')
     return train_basic(
         params,
         builders=model_builders,
-        inputs='X', outputs='X',
+        inputs=input_col, outputs=input_col,
         logger=logger,
-        callbacks=report_callbacks)
+        callbacks=report_callbacks,
+        **kw)
 
 def load(folder):
     model = load_model(os.path.join(folder, 'model.h5'), custom_objects=custom_objects)
@@ -101,14 +103,16 @@ def _iterative_refinement(params, model, folder):
     # shape is shape of inputs before
     # applying the transformers (if there are transformers)
     shape = transformers[0].input_shape_ if len(transformers) else model.input_shape[1:]
-    X = np.empty((N, nb_iter + 1,) + shape)
-    X = floatX(X)
-
+    shape = tuple(shape)
+    if hasattr(transformers[0], 'input_dtype_'):
+        dtype = transformers[0].input_dtype_
+    else:
+        dtype = 'float32'
+    X = np.empty((N, nb_iter + 1,) + shape, dtype=dtype)
     rng = np.random.RandomState(seed)
 
     s = rng.uniform(size=(N,) + model.input_shape[1:])
     X[:, 0] = inverse_transform_one(s, transformers)
-
     # Build apply function
     reconstruct = minibatcher(model.predict, batch_size=batch_size)
 
@@ -117,12 +121,13 @@ def _iterative_refinement(params, model, folder):
     for i in (range(1, nb_iter + 1)):
         logger.info('Iteration {}'.format(i))
         s = _apply_noise(noise_name, noise_params, s, rng=rng)
+        s_orig = s
         s = reconstruct(s)
         s = _apply_binarization(binarize_name, binarize_params, s, rng=rng)
         X[:, i] = inverse_transform_one(s, transformers)
-        score = float(np.abs(X[:, i] - X[:, i - 1]).mean())
+        score = float(np.abs(s - s_orig).mean())
         logger.info('Mean absolute error : {:.5f}'.format(score))
-        if previous_score and score == previous_score and stop_if_unchanged:
+        if (previous_score and score == previous_score and stop_if_unchanged) or score == 0:
             logger.info('Stopping at iteration {}/{} because score did not change'.format(i, nb_iter))
             X = X[:, 0:i+1]
             break

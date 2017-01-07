@@ -204,7 +204,7 @@ transformer = {
     'ColorDiscretizer': ColorDiscretizer
 }
 
-def make_transformers_pipeline(transformers):
+def make_transformers_pipeline(transformers, transformer=transformer):
     """
     helpers create a list of instances of Transformer.
 

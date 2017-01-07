@@ -219,7 +219,7 @@ class Normalize(Layer):
         base_config = super(Normalize, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
 
-custom_layers = {
+layers = {
     'ksparse': ksparse,
     'winner_take_all_spatial': winner_take_all_spatial,
     'winner_take_all_channel': winner_take_all_channel,

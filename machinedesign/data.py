@@ -167,6 +167,8 @@ operators = {}
 operators.update(image_operators)
 operators.update(load_operators)
 operators.update(transform_operators)
+
+
 pipeline_load = partial(pipeline_load, operators=operators)
 
 def get_nb_samples(pipeline):

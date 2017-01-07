@@ -1,5 +1,5 @@
 """
-Module containng transformers.
+Module containing transformers.
 transformers are used to preprocess data before feeding
 it into models, it is mostly used when the preprocessing
 needs to fit some values from training (e.g mean and std for Standardize),
@@ -199,19 +199,19 @@ def onehot(X, D=10):
     m = floatX(m)
     return m
 
-transformer = {
+transformers = {
     'Standardize': Standardize,
     'ColorDiscretizer': ColorDiscretizer
 }
 
-def make_transformers_pipeline(transformers, transformer=transformer):
+def make_transformers_pipeline(transformer_list, transformers=transformers):
     """
     helpers create a list of instances of Transformer.
 
     Parameters
     ----------
 
-    transformers : list of dict
+    transformer_list : list of dict
         each dict has two keys, `name` and `params`.
         `name` is the name of the Transformer.
         `params` are the parameters of the __init__ of the Transformer.
@@ -224,16 +224,16 @@ def make_transformers_pipeline(transformers, transformer=transformer):
     list of Transformer
 
     """
-    return [transformer[t['name']](**t['params']) for t in transformers]
+    return [transformers[t['name']](**t['params']) for t in transformer_list]
 
-def fit_transformers(transformers, iter_generator):
+def fit_transformers(transformer_list, iter_generator):
     """
     fit a list of Transformers
 
     Parameters
     ----------
 
-    transformers: list of Transformer
+    transformer_list: list of Transformer
 
     iter_generator : callable
         function that returns an iterator (fresh one)
@@ -243,14 +243,14 @@ def fit_transformers(transformers, iter_generator):
         are deterministic so that we don't end up each time
         with a different sample
     """
-    for i, t in enumerate(transformers):
+    for i, t in enumerate(transformer_list):
         tprev = transformers[0:i]
         for X in iter_generator():
             for tp in tprev:
                 X = tp.transform(X)
             t.partial_fit(X)
 
-def transform(iterator, transformers):
+def transform(iterator, transformer_list):
     """
     transform an iterator using a list of Transformer
 
@@ -269,23 +269,23 @@ def transform(iterator, transformers):
 
     """
     for d in iterator:
-        d = transform_one(d, transformers)
+        d = transform_one(d, transformer_list)
         yield d
 
-def transform_one(d, transformers):
+def transform_one(d, transformer_list):
     """
     apply a list of transformers to `d`
     """
-    for t in transformers:
+    for t in transformer_list:
         d = t.transform(d)
     return d
 
-def inverse_transform_one(d, transformers):
+def inverse_transform_one(d, transformer_list):
     """
     apply inverse transform of a list of transformers to `d`.
     because it is inverse transform, transformers is processed
     backwards.
     """
-    for t in transformers[::-1]:
+    for t in transformer_list[::-1]:
         d = t.inverse_transform(d)
     return d

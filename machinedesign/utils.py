@@ -41,7 +41,9 @@ axes = {
     'time': 1,
     'channels': 1,
     'height': 2,
-    'width': 3
+    'width': 3,
+    'time_features': 2,
+    'features': 1
 }
 
 def get_axis(axis):

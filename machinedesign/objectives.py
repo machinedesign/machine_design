@@ -9,7 +9,7 @@ import warnings
 from functools import partial
 
 from keras import backend as K
-from keras import objectives
+from keras import objectives as keras_objectives
 from keras.models import load_model
 from keras.models import Model
 
@@ -157,7 +157,7 @@ def loss_sum(y_true, y_pred, terms=[]):
         total += get_loss(loss_def['loss'])(y_true, y_pred) * loss_def['coef']
     return total
 
-custom_objectives = {
+objectives = {
     'axis_categorical_crossentropy': axis_categorical_crossentropy,
     'feature_space_mean_squared_error': feature_space_mean_squared_error,
     'objectness': objectness,
@@ -169,8 +169,8 @@ custom_objectives = {
     'categorical_crossentropy': categorical_crossentropy
 }
 
-objectives = object_to_dict(objectives)
-objectives.update(custom_objectives)
+objectives = object_to_dict(keras_objectives)
+objectives.update(objectives)
 
 def get_loss(loss, objectives=objectives):
     """

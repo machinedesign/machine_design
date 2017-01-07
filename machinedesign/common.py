@@ -15,14 +15,15 @@ from keras.layers import SimpleRNN
 from keras.engine.training import Model
 from keras import optimizers
 
-from .objectives import custom_objectives
-from .layers import custom_layers
+from .objectives import objectives
+from .layers import layers
+from .utils import object_to_dict
 
 custom_objects = {}
-custom_objects.update(custom_objectives)
-custom_objects.update(custom_layers)
+custom_objects.update(objectives)
+custom_objects.update(layers)
 
-def activation_function(name):
+def activation_function(name, layers=layers):
     """
     gives an activation function based on its name.
 
@@ -38,8 +39,8 @@ def activation_function(name):
     if isinstance(name, dict):
         act = name
         name, params = act['name'], act['params']
-        if name in custom_layers:
-            return custom_layers[name](**params)
+        if name in layers:
+            return layers[name](**params)
         else:
             raise ValueError('Unknown activation function : {}'.format(name))
     else:
@@ -231,3 +232,14 @@ def check_model_shape_or_exception(model, shape):
         msg = """Wrong output shape of the model, expected : {}, got : {}.
                  Please fix the parameters""".format(shape, model.output_shape[1:])
         raise ValueError(msg)
+
+def callback_trigger(callbacks, event_name, *args, **kwargs):
+    """
+    Parameters
+    ----------
+
+    Returns
+    -------
+    """
+    for cb in callbacks:
+        getattr(cb, event_name)(*args, **kwargs)

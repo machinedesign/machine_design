@@ -4,9 +4,10 @@ import shutil
 from machinedesign.common import WrongModelFamilyException
 from machinedesign.autoencoder.interface import train
 
-
 params_test = {
     'family': 'autoencoder',
+    'input_col': 'X',
+    'output_col': 'X',
     'model': {
         'name': 'fully_connected',
         'params':{

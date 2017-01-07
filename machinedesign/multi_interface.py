@@ -7,6 +7,7 @@ from six.moves import map
 
 from .common import build_optimizer
 from .common import show_model_info
+from .common import callback_trigger
 
 from .utils import write_csv
 
@@ -611,14 +612,3 @@ def train_evaluator_on_batch(evaluator, Y_real, Y_fake):
     Z_concat = np.concatenate((Z_real, Z_fake), axis=0)
     # In GAN, this trains the evaluator to separate between real and fake data
     return evaluator.train_on_batch(Y_concat, Z_concat)
-
-def callback_trigger(callbacks, event_name, *args, **kwargs):
-    """
-    Parameters
-    ----------
-
-    Returns
-    -------
-    """
-    for cb in callbacks:
-        getattr(cb, event_name)(*args, **kwargs)

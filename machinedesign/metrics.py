@@ -24,6 +24,11 @@ def categorical_crossentropy(y_true, y_pred):
     y_pred = y_pred.reshape((y_pred.shape[0], -1))
     return -np.log(y_pred[np.arange(len(y_pred)), y_true])
 
+metrics = {
+    'mean_squared_error': mean_squared_error,
+    'binary_crossentropy': binary_crossentropy,
+    'categorical_crossentropy': categorical_crossentropy
+}
 
 def compute_metric(get_true_and_pred, metric):
     """

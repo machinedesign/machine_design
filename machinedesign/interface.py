@@ -4,9 +4,11 @@ import numpy as np
 import time
 from functools import partial
 from six.moves import map
+from collections import namedtuple
 
 from .common import build_optimizer
 from .common import show_model_info
+from .common import callback_trigger
 
 from .utils import mkdir_path
 
@@ -18,6 +20,7 @@ from .data import get_shapes
 from .data import batch_iterator
 from .data import dict_apply
 from .data import operators
+from .data import floatX
 
 from .callbacks import CallbackContainer
 from .callbacks import BudgetFinishedException
@@ -31,10 +34,16 @@ from .callbacks import build_lr_schedule_callback
 from .transformers import make_transformers_pipeline
 from .transformers import transform_one
 from .transformers import fit_transformers
-from .transformers import transformers
 
-from . import metrics as metric_functions
 from .metrics import compute_metric
+
+# elements of Config
+from .model_builders import builders as model_builders
+from .layers import layers
+from .data import operators as data_operators
+from .transformers import transformers
+from .metrics import metrics
+from .objectives import objectives
 
 import pickle
 import logging
@@ -42,20 +51,32 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+Config = namedtuple(
+    'Config',
+    ['model_builders',
+     'layers',
+     'data_operators',
+     'transformers',
+     'metrics',
+     'objectives'
+     ])
 
-def train(params, 
-          inputs='X', outputs='y', 
-          logger=logger, 
-          callbacks=[],
+default_config = Config(
+    model_builders=model_builders,
+    layers=layers,
+    data_operators=data_operators,
+    transformers=transformers,
+    metrics=metrics,
+    objectives=objectives
+)
 
-          model_builder={},
-          transformers=transformer,
-          transformers=transformers,
-          builder={},
-          data_operators=operators)
+def train(params,
+          config=default_config,
+          custom_callbacks=[],
+          logger=logger):
     """
     Generic training procedure to train a mapping from some inputs
-    to some outputs. You can use this for most kind of models (e.g autoencoders,
+    to some outputs. You can use this for most kind of models (e.g autoencoders),
     variational autoencoders, etc.) but not with GANs. GANs have their own module
     with the same interface.
     """
@@ -66,6 +87,8 @@ def train(params,
     report = params['report']
     outdir = report['outdir']
     metrics = report['metrics']
+    input_col = params['input_col']
+    output_col = params['output_col']
 
     optim = params['optim']
     max_nb_epochs = optim['max_nb_epochs']
@@ -94,11 +117,15 @@ def train(params,
     train_pipeline = data['train']['pipeline']
 
     logger.info('Fitting transformers on training data...')
-    transformers = make_transformers_pipeline(data['transformers'], transformer=transformers)
+
+    transformers = make_transformers_pipeline(
+        data['transformers'],
+        transformers=config.transformers)
+
     def transformers_data_generator():
-        it = pipeline_load(train_pipeline)
-        it = batch_iterator(it, batch_size=batch_size, repeat=False, cols=[inputs])
-        it = map(lambda d:d[inputs], it)
+        it = pipeline_load(train_pipeline, operators=config.data_operators)
+        it = batch_iterator(it, batch_size=batch_size, repeat=False, cols=[input_col])
+        it = map(lambda d:d[input_col], it)
         return it
 
     fit_transformers(
@@ -122,11 +149,12 @@ def train(params,
     nb_minibatches = get_nb_minibatches(nb_train_samples, batch_size)
     logger.info('Number of training examples : {}'.format(nb_train_samples))
     logger.info('Number of training minibatches : {}'.format(nb_minibatches))
-    apply_transformers = partial(transform_one, transformers=transformers)
+    apply_transformers = partial(transform_one, transformer_list=transformers)
     def train_data_generator(batch_size=batch_size, repeat=False):
         it = pipeline_load(train_pipeline)
-        it = batch_iterator(it, batch_size=batch_size, repeat=repeat, cols=[inputs, outputs])
-        it = map(partial(dict_apply, fn=apply_transformers, cols=[inputs]), it)
+        it = batch_iterator(it, batch_size=batch_size, repeat=repeat, cols=[input_col, output_col])
+        it = map(partial(dict_apply, fn=apply_transformers, cols=[input_col]), it)
+        it = map(partial(dict_apply, fn=floatX, cols=[input_col, output_col]), it)
         return it
     iterators['train'] = train_data_generator
 
@@ -135,9 +163,9 @@ def train(params,
     model = _build_model(
         name=model_name,
         params=model_params,
-        input_shape=shapes[inputs],
-        output_shape=shapes[outputs],
-        builders=builders)
+        input_shape=shapes[input_col],
+        output_shape=shapes[output_col],
+        builders=config.model_builders)
     #TODO: understand more this
     # I did this to avoid missinginputerror of K.learning_phase when
     # using a model in the loss such as objectness. If the model does
@@ -150,7 +178,7 @@ def train(params,
         lay.uses_learning_phase = True
 
     optimizer = build_optimizer(algo_name, algo_params)
-    loss = get_loss(loss_name)
+    loss = get_loss(loss_name, objectives=config.objectives)
     model.compile(loss=loss, optimizer=optimizer)
 
     show_model_info(model, print_func=logger.info)
@@ -173,14 +201,14 @@ def train(params,
 
     metric_callbacks = []
     for metric in metrics:
-        metric_func = getattr(metric_functions, metric)
+        metric_func = config.metrics[metric]
         for which in ('train',):
             compute_func = _build_compute_func(
                 predict=model.predict,
                 data_generator=lambda: iterators[which](batch_size=pred_batch_size, repeat=False),
                 metric=metric_func,
-                inputs=inputs,
-                outputs=outputs,
+                input_col=input_col,
+                output_col=output_col,
                 aggregate=np.mean)
             callback = RecordEachEpoch(which + '_' + metric, compute_func)
             metric_callbacks.append(callback)
@@ -191,31 +219,31 @@ def train(params,
         early_stopping,
         checkpoint
     ]
-    callbacks = metric_callbacks + basic_callbacks + callbacks + [time_budget]
+    callbacks = metric_callbacks + basic_callbacks + custom_callbacks + [time_budget]
     for cb in callbacks:
         cb.model = model
         cb.data_iterators = iterators
         cb.params = params
         cb.transformers = transformers
-    callbacks = CallbackContainer(callbacks)
 
     # Training loop
-    callbacks.on_train_begin()
-    train_iterator = train_data_generator(batch_size=batch_size, repeat=True)
-    history_stats = []
+    callback_trigger(callbacks, 'on_train_begin')
 
+    train_iterator = train_data_generator(batch_size=batch_size, repeat=True)
+
+    history_stats = []
     model.history_stats = history_stats
     for epoch in range(max_nb_epochs):
         logger.info('Epoch {:05d}...'.format(epoch))
         dt = time.time()
         stats = {}
-        callbacks.on_epoch_begin(epoch, logs=stats)
+        callback_trigger(callbacks, 'on_epoch_begin', epoch, logs=stats)
         for _ in range(nb_minibatches):
             train_batch = next(train_iterator)
-            X, Y = train_batch[inputs], train_batch[outputs]
+            X, Y = train_batch[input_col], train_batch[output_col]
             model.train_on_batch(X, Y)
         try:
-            callbacks.on_epoch_end(epoch, logs=stats)
+            callback_trigger(callbacks, 'on_epoch_end', epoch, logs=stats)
         except BudgetFinishedException:
             logger.info('Budget finished. Stop training.')
             stop_training = True
@@ -228,6 +256,7 @@ def train(params,
         for k, v in stats.items():
             logger.info('{}={:.4f}'.format(k, v))
         logger.info('elapsed time : {:.3f}s'.format(time.time() - dt))
+
         # the following happens
         # when early stopping or budget finished
         if stop_training:
@@ -247,9 +276,9 @@ def _update_history(model, logs):
         model.history.history[k].append(v)
 
 def _build_compute_func(predict, data_generator, metric,
-                        inputs='X', outputs='y',
+                        input_col='X', output_col='y',
                         aggregate=np.mean):
-    get_real_and_pred = lambda: map(lambda data: (data[inputs], predict(data[inputs])), data_generator())
+    get_real_and_pred = lambda: map(lambda data: (data[input_col], predict(data[input_col])), data_generator())
     compute_func = lambda: aggregate(compute_metric(get_real_and_pred, metric))
     return compute_func
 

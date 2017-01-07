@@ -147,3 +147,9 @@ def rnn_rnn_autoencoder(params, input_shape, output_shape):
     model = Model(input=inp, output=out)
     check_model_shape_or_exception(model, output_shape)
     return model
+
+builders = {
+    'convolutional_bottleneck': convolutional_bottleneck,
+    'convolutional_rnn_autoencoder': convolutional_rnn_autoencoder,
+    'rnn_rnn_autoencoder': rnn_rnn_autoencoder
+}

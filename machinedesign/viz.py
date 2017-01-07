@@ -2,6 +2,7 @@
 This module contains common visualization functions
 used to report results of the models.
 """
+
 from functools import partial
 import numpy as np
 

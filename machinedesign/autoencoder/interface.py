@@ -25,18 +25,22 @@ from ..viz import horiz_merge
 from ..callbacks import DoEachEpoch
 from ..transformers import inverse_transform_one
 
-from .. import model_builders
-from . import model_builders as model_builders_autoencoder
+from ..model_builders import builders as model_builders_basic
+from .model_builders import builders as model_builders_autoencoder
+
+from ..interface import default_config
+
+import copy
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-model_builders = object_to_dict(model_builders)
-model_builders_autoencoder = object_to_dict(model_builders_autoencoder)
+model_builders = model_builders_basic.copy()
 model_builders.update(model_builders_autoencoder)
 
+default_config = default_config._replace(model_builders=model_builders)
 
-def train(params, **kw):
+def train(params, config=default_config, custom_callbacks=[], logger=logger):
     check_family_or_exception(params['family'], 'autoencoder')
     # Callbacks
     report_callbacks = []
@@ -50,15 +54,11 @@ def train(params, **kw):
             cb = DoEachEpoch(_report_image_features)
             cb.outdir = params['report']['outdir']
             report_callbacks.append(cb)
-    # Call training functions
-    input_col = params.get('input_col', 'X')
+    # Call training function
     return train_basic(
         params,
-        builders=model_builders,
-        inputs=input_col, outputs=input_col,
-        logger=logger,
-        callbacks=report_callbacks,
-        **kw)
+        custom_callbacks=custom_callbacks + report_callbacks,
+        config=config)
 
 def load(folder):
     model = load_model(os.path.join(folder, 'model.h5'), custom_objects=custom_objects)
@@ -127,7 +127,7 @@ def _iterative_refinement(params, model, folder):
         X[:, i] = inverse_transform_one(s, transformers)
         score = float(np.abs(s - s_orig).mean())
         logger.info('Mean absolute error : {:.5f}'.format(score))
-        if (previous_score and score == previous_score and stop_if_unchanged) or score == 0:
+        if (previous_score and score == previous_score and stop_if_unchanged):
             logger.info('Stopping at iteration {}/{} because score did not change'.format(i, nb_iter))
             X = X[:, 0:i+1]
             break

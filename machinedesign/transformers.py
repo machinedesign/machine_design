@@ -245,7 +245,7 @@ def fit_transformers(transformer_list, iter_generator):
         with a different sample
     """
     for i, t in enumerate(transformer_list):
-        tprev = transformers[0:i]
+        tprev = transformer_list[0:i]
         for X in iter_generator():
             for tp in tprev:
                 X = tp.transform(X)

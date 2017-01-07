@@ -158,20 +158,21 @@ class UpConv2D(Convolution2D):
     exception will be thrown.
     """
     def get_output_shape_for(self, input_shape):
-        assert self.border_mode == 'same'
+        self._check_stride()
         N, c, h, w = input_shape
-        h = h * self.subsample[0]
-        w = w * self.subsample[1]
+        if self.border_mode == 'same':
+            h = h * self.subsample[0]
+            w = w * self.subsample[1]
+        elif self.border_mode == 'full':
+            return super(UpConv2D, self).get_output_shape_for(input_shape)
         input_shape = N, self.nb_filter, h, w
         return input_shape
 
     def call(self, x, mask=None):
-        assert self.border_mode == 'same'
-
+        self._check_stride()
+        sh, sw = self.subsample
         # inspired by : <http://distill.pub/2016/deconv-checkerboard/>
         # Upsample by just copying pixel values in grids of size subsamplexsubsample
-        sh, sw = self.subsample
-        assert sh == sw
         s = sh
         # don't do anything if there is any subsampling
         if s > 1:
@@ -196,6 +197,13 @@ class UpConv2D(Convolution2D):
                 raise Exception('Invalid dim_ordering: ' + self.dim_ordering)
         output = self.activation(output)
         return output
+
+    def _check_stride(self):
+        sh, sw = self.subsample
+        assert sh == sw, 'stride should be the same in height and width'
+        if sh > 1:
+            assert self.border_mode == 'same', 'Only border_mode="same" is supported if stride > 1'
+
 
 class Normalize(Layer):
     """

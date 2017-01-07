@@ -104,7 +104,12 @@ def _iterative_refinement(params, model, folder):
     # applying the transformers (if there are transformers)
     shape = transformers[0].input_shape_ if len(transformers) else model.input_shape[1:]
     shape = tuple(shape)
-    if hasattr(transformers[0], 'input_dtype_'):
+    # if there are transformers, we will need the input dtype
+    # it can be provided by the first transformer.
+    # it is needed because we have to initialize the input
+    # here, so we also need to know the type of the data.
+    # by default, the type is float32.
+    if len(transformers) and hasattr(transformers[0], 'input_dtype_'):
         dtype = transformers[0].input_dtype_
     else:
         dtype = 'float32'

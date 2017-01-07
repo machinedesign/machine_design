@@ -9,6 +9,8 @@ from machinedesign.autoencoder.interface import generate
 def main():
     params = {
         'family': 'autoencoder',
+        'input_col': 'X',
+        'output_col': 'X',
         'model': {
             'name': 'fully_connected',
             'params':{
@@ -26,12 +28,9 @@ def main():
         'data': {
             'train': {
                 'pipeline':[
-                    {"name": "imagefilelist", "params": {"pattern": "{gametiles}"}},
-                    {"name": "shuffle", "params": {}},
-                    {"name": "imageread", "params": {}},
+                    {"name": "toy", "params": {"nb": 128, "w": 8, "h": 8, "pw": 2, "ph": 2, "nb_patches": 2, "random_state": 42}},
+                    {"name": "shuffle", "params": {"random_state": 42}},
                     {"name": "normalize_shape", "params": {}},
-                    {"name": "force_rgb", "params": {}},
-                    {"name": "resize", "params": {"shape": [16, 16]}},
                     {"name": "divide_by", "params": {"value": 255}},
                     {"name": "order", "params": {"order": "th"}}
                 ]
@@ -80,6 +79,7 @@ def main():
         'method':{
             'name': 'iterative_refinement',
             'params': {
+                'seed': 42,
                 'batch_size': 128,
                 'nb_samples': 256,
                 'nb_iter': 100,
@@ -91,7 +91,9 @@ def main():
                 'noise':{
                     'name': 'none',
                     'params': {}
-                }
+                },
+                'stop_if_unchanged': True,
+                'seed': 42
             },
             'save_folder': 'gen'
         }

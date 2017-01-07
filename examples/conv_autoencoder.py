@@ -9,12 +9,18 @@ from machinedesign.autoencoder.interface import generate
 def main():
     params = {
         'family': 'autoencoder',
+        'input_col': 'X',
+        'output_col': 'X',
         'model': {
             'name': 'convolutional_bottleneck',
             'params':{
+                'stride': 1,
+
                 'encode_nb_filters': [64, 64, 64],
                 'encode_filter_sizes': [5, 5, 5],
-                'encode_activations': ['relu', 'relu', {'name': 'winner_take_all_spatial', 'params':{'nb_active': 1}}],
+                'encode_activations': ['relu', 'relu', 'relu'],
+
+                'code_activations': [{'name': 'winner_take_all_spatial', 'params':{'nb_active': 1}}],
 
                 'decode_nb_filters': [],
                 'decode_filter_sizes': [],
@@ -27,12 +33,12 @@ def main():
         'data': {
             'train': {
                 'pipeline':[
-                    {"name": "imagefilelist", "params": {"pattern": "{gametiles}"}},
-                    {"name": "shuffle", "params": {}},
-                    {"name": "imageread", "params": {}},
+                    {"name": "toy",
+                     "params": {"nb": 128, "w": 16, "h": 16,
+                                "pw": 2, "ph": 2,
+                                "nb_patches": 2, "random_state": 42}},
+                    {"name": "shuffle", "params": {"random_state": 42}},
                     {"name": "normalize_shape", "params": {}},
-                    {"name": "force_rgb", "params": {}},
-                    {"name": "resize", "params": {"shape": [16, 16]}},
                     {"name": "divide_by", "params": {"value": 255}},
                     {"name": "order", "params": {"order": "th"}}
                 ]
@@ -81,6 +87,7 @@ def main():
         'method':{
             'name': 'iterative_refinement',
             'params': {
+                'seed': 42,
                 'batch_size': 128,
                 'nb_samples': 256,
                 'nb_iter': 100,
@@ -92,7 +99,8 @@ def main():
                 'noise':{
                     'name': 'none',
                     'params': {}
-                }
+                },
+                'stop_if_unchanged': True,
             },
             'save_folder': 'gen'
         }

@@ -165,7 +165,7 @@ rnn_classes = {'GRU': GRU, 'LSTM': LSTM, 'RNN': SimpleRNN}
 def rnn_stack(x, nb_hidden_units, rnn_type='GRU'):
     rnn_class = rnn_classes[rnn_type]
     for nb_units in nb_hidden_units:
-        x = rnn_class(nb_units, return_sequences=True)(x)
+        x = rnn_cflass(nb_units, return_sequences=True)(x)
     return x
 
 

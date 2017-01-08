@@ -15,7 +15,6 @@ from ..interface import train as train_basic
 from ..common import check_family_or_exception
 from ..common import custom_objects
 
-from ..utils import object_to_dict
 from ..utils import mkdir_path
 
 from ..viz import reshape_to_images
@@ -30,7 +29,6 @@ from .model_builders import builders as model_builders_autoencoder
 
 from ..interface import default_config
 
-import copy
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -40,10 +38,10 @@ model_builders.update(model_builders_autoencoder)
 
 default_config = default_config._replace(model_builders=model_builders)
 
+
 def train(params, config=default_config, custom_callbacks=[], logger=logger):
     check_family_or_exception(params['family'], 'autoencoder')
     # Callbacks
-    report_callback_names = params['report'].get('callbacks', [])
     report_callbacks = []
     if report_callbacks:
         if 'image_reconstruction' in report_callbacks:
@@ -60,12 +58,14 @@ def train(params, config=default_config, custom_callbacks=[], logger=logger):
         custom_callbacks=custom_callbacks + report_callbacks,
         config=config)
 
+
 def load(folder, custom_objects=custom_objects):
     model = load_model(os.path.join(folder, 'model.h5'), custom_objects=custom_objects)
     with open(os.path.join(folder, 'transformers.pkl'), 'rb') as fd:
         transformers = pickle.load(fd)
     model.transformers = transformers
     return model
+
 
 def generate(params):
     method = params['method']
@@ -74,12 +74,14 @@ def generate(params):
     model = load(folder)
     return _run_method(method, model)
 
+
 def _run_method(method, model):
     name = method['name']
     params = method['params']
     save_folder = method['save_folder']
     func = get_method(name)
     return func(params, model, save_folder)
+
 
 def _iterative_refinement(params, model, folder):
     # get params
@@ -134,12 +136,13 @@ def _iterative_refinement(params, model, folder):
         logger.info('Mean absolute error : {:.5f}'.format(score))
         if (previous_score and score == previous_score and stop_if_unchanged):
             logger.info('Stopping at iteration {}/{} because score did not change'.format(i, nb_iter))
-            X = X[:, 0:i+1]
+            X = X[:, 0:i + 1]
             break
         previous_score = score
     mkdir_path(folder)
     filename = os.path.join(folder, 'generated.npz')
     np.savez_compressed(filename, full=X, generated=X[:, -1])
+
 
 def _apply_noise(name, params, X, rng=np.random):
     if name == 'masking':
@@ -165,13 +168,14 @@ def _apply_noise(name, params, X, rng=np.random):
         shape = list(X.shape)
         shape[axis] = 1
         u = rng.uniform(size=shape) <= (1 - noise_pr)
-        X = X * u  + mask * (1 - u)
+        X = X * u + mask * (1 - u)
         X = floatX(X)
         return X
     elif name == 'none':
         return X
     else:
         raise ValueError('Unknown noise method : {}'.format(name))
+
 
 def _apply_binarization(name, params, X, rng=np.random):
     if name == 'sample_bernoulli':
@@ -203,8 +207,10 @@ def _apply_binarization(name, params, X, rng=np.random):
     else:
         raise ValueError('Unknown binarization method  : {}'.format(name))
 
+
 def get_method(name):
     return {'iterative_refinement': _iterative_refinement}[name]
+
 
 def _report_image_reconstruction(cb):
     model = cb.model
@@ -225,6 +231,7 @@ def _report_image_reconstruction(cb):
     mkdir_path(folder)
     filename = os.path.join(folder, '{:05d}.png'.format(epoch))
     imsave(filename, img)
+
 
 def _report_image_features(cb):
     model = cb.model
@@ -252,6 +259,7 @@ def _report_image_features(cb):
             imsave(filename, img)
         else:
             pass
+
 
 def _get_input_reconstruction_grid(X, X_rec, grid_of_images=grid_of_images_default):
     X = grid_of_images(X)

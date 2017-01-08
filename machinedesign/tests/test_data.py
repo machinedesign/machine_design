@@ -6,21 +6,26 @@ from machinedesign.data import minibatcher
 from machinedesign.data import iterate_minibatches
 
 toy_pipeline = [
-    {"name": "toy", "params": {"nb": 50, "w": 8, "h": 8, "pw": 2, "ph": 2, "nb_patches": 2, "random_state": 42}},
+    {"name": "toy", "params": {"nb": 50, "w": 8, "h": 8,
+                               "pw": 2, "ph": 2, "nb_patches": 2, "random_state": 42}},
     {"name": "shuffle", "params": {"random_state": 42}},
     {"name": "normalize_shape", "params": {}},
     {"name": "divide_by", "params": {"value": 255}},
     {"name": "order", "params": {"order": "th"}}
 ]
 
+
 def test_get_nb_samples():
     assert get_nb_samples(toy_pipeline) == 50
     assert get_nb_samples([]) == 0
 
+
 def test_get_shapes():
     assert get_shapes({}) == {}
-    assert get_shapes({'X': np.random.uniform(size=(1,2,3))}) == {'X': (2, 3)}
-    assert get_shapes({'X': np.random.uniform(size=(1,2,3)), 'y': np.random.uniform(size=(4, 5))}) == {'X': (2, 3), 'y': (5,)}
+    assert get_shapes({'X': np.random.uniform(size=(1, 2, 3))}) == {'X': (2, 3)}
+    assert get_shapes({'X': np.random.uniform(size=(1, 2, 3)), 'y': np.random.uniform(size=(4, 5))}) == {
+        'X': (2, 3), 'y': (5,)}
+
 
 def test_get_nb_minibatches():
     assert get_nb_minibatches(0, 10) == 0
@@ -29,6 +34,7 @@ def test_get_nb_minibatches():
     assert get_nb_minibatches(10, 0) == 0
     assert get_nb_minibatches(25, 1) == 25
     assert get_nb_minibatches(25, 10) == 3
+
 
 def test_batch_iterator():
     """
@@ -58,8 +64,9 @@ def test_batch_iterator():
     assert np.all(res[2]['y'] == yvals[20:])
     """
 
+
 def test_minibatcher():
-    func = lambda x:x**2
+    func = lambda x: x**2
     func = minibatcher(func, batch_size=10)
 
     # test empty input
@@ -74,8 +81,10 @@ def test_minibatcher():
     assert len(y) == len(X)
     assert np.all(y == func(X))
 
+
 def test_iterate_minibatches():
     assert list(iterate_minibatches(0, 10)) == []
 
     mb = iterate_minibatches(55, 10)
-    assert list(mb) == [slice(0, 10), slice(10, 20), slice(20, 30), slice(30, 40), slice(40, 50), slice(50, 55)]
+    assert list(mb) == [slice(0, 10), slice(10, 20), slice(
+        20, 30), slice(30, 40), slice(40, 50), slice(50, 55)]

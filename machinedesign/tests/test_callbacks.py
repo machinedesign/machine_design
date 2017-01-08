@@ -8,7 +8,9 @@ from machinedesign.callbacks import lr_schedule_manual
 from machinedesign.callbacks import TimeBudget
 from machinedesign.callbacks import BudgetFinishedException
 
+
 class Store(Callback):
+
     def __init__(self, caption):
         self.caption = caption
         self.actions = []
@@ -25,37 +27,39 @@ class Store(Callback):
     def on_batch_end(self, batch, logs={}):
         self.actions.append('{}_batch_end'.format(self.caption))
 
+
 def test_learning_rate_scheduler_constant():
     assert lr_schedule_constant(0.5) == 0.5
     assert lr_schedule_constant(0) == 0
+
 
 def test_learning_rate_scheduler_decrease_when_stop_improving():
 
     for mode in ('min', 'max'):
         assert lr_schedule_decrease_when_stop_improving(
-                    old_lr=1, patience=5, mode='min', shrink_factor=2.,
-                    loss_history=[]) == 1
+            old_lr=1, patience=5, mode='min', shrink_factor=2.,
+            loss_history=[]) == 1
         assert lr_schedule_decrease_when_stop_improving(
-                    old_lr=1, patience=0, mode='min', shrink_factor=2.,
-                    loss_history=[]) == 1
+            old_lr=1, patience=0, mode='min', shrink_factor=2.,
+            loss_history=[]) == 1
     assert lr_schedule_decrease_when_stop_improving(
-                old_lr=1, patience=2, mode='min', shrink_factor=2.,
-                loss_history=[10, 20, 30]) == 0.5
+        old_lr=1, patience=2, mode='min', shrink_factor=2.,
+        loss_history=[10, 20, 30]) == 0.5
     assert lr_schedule_decrease_when_stop_improving(
-                old_lr=1, patience=2, mode='min', shrink_factor=2.,
-                loss_history=[10, 20, 5]) == 1
+        old_lr=1, patience=2, mode='min', shrink_factor=2.,
+        loss_history=[10, 20, 5]) == 1
     assert lr_schedule_decrease_when_stop_improving(
-                old_lr=1, patience=2, mode='max', shrink_factor=2.,
-                loss_history=[10, 20, 30]) == 1
+        old_lr=1, patience=2, mode='max', shrink_factor=2.,
+        loss_history=[10, 20, 30]) == 1
     assert lr_schedule_decrease_when_stop_improving(
-                old_lr=1, patience=2, mode='max', shrink_factor=2.,
-                loss_history=[10, 20, 5]) == 0.5
+        old_lr=1, patience=2, mode='max', shrink_factor=2.,
+        loss_history=[10, 20, 5]) == 0.5
     assert lr_schedule_decrease_when_stop_improving(
-                old_lr=1, patience=2, mode='min', shrink_factor=2.,
-                loss_history=[0, 2, 4, 1, 50, 60]) == 0.5
+        old_lr=1, patience=2, mode='min', shrink_factor=2.,
+        loss_history=[0, 2, 4, 1, 50, 60]) == 0.5
     assert lr_schedule_decrease_when_stop_improving(
-                old_lr=1, patience=2, mode='max', shrink_factor=2.,
-                loss_history=[0, 2, 4, 1, 50, 60]) == 1
+        old_lr=1, patience=2, mode='max', shrink_factor=2.,
+        loss_history=[0, 2, 4, 1, 50, 60]) == 1
 
 
 def test_learning_rate_scheduler_decrease_every():
@@ -69,6 +73,7 @@ def test_learning_rate_scheduler_decrease_every():
     assert lr_schedule_decrease_every(1, every=0, shrink_factor=2., epoch=0) == 1
     assert lr_schedule_decrease_every(1, every=0, shrink_factor=2., epoch=1) == 1
     assert lr_schedule_decrease_every(1, every=0, shrink_factor=2., epoch=100) == 1
+
 
 def test_learning_rate_scheduler_manual():
     assert lr_schedule_manual(1, schedule=[], epoch=0) == 1
@@ -106,6 +111,7 @@ def test_learning_rate_scheduler_manual():
         assert lr_schedule_manual(0, schedule=s, epoch=e) == 0.5
     for e in (5, 6, 7, 8):
         assert lr_schedule_manual(0, schedule=s, epoch=e) == 0.5
+
 
 def test_time_budget():
     clock = 0

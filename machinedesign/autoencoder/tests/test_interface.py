@@ -10,32 +10,33 @@ params_test = {
     'output_col': 'X',
     'model': {
         'name': 'fully_connected',
-        'params':{
+        'params': {
             'nb_hidden_units': [10],
             'activations': ['relu'],
             'output_activation': 'sigmoid',
-            'input_noise':{
+            'input_noise': {
                 'name': 'gaussian',
                 'params': {
                     'std': 1
                 }
             },
-         }
+        }
     },
     'data': {
         'train': {
-            'pipeline':[
-                {"name": "toy", "params": {"nb": 128, "w": 8, "h": 8, "pw": 2, "ph": 2, "nb_patches": 2, "random_state": 42}},
+            'pipeline': [
+                {"name": "toy", "params": {"nb": 128, "w": 8, "h": 8,
+                                           "pw": 2, "ph": 2, "nb_patches": 2, "random_state": 42}},
                 {"name": "shuffle", "params": {"random_state": 42}},
                 {"name": "normalize_shape", "params": {}},
                 {"name": "divide_by", "params": {"value": 255}},
                 {"name": "order", "params": {"order": "th"}}
             ]
         },
-        'transformers':[
+        'transformers': [
         ]
     },
-    'report':{
+    'report': {
         'outdir': 'out',
         'checkpoint': {
             'loss': 'train_mean_squared_error',
@@ -44,16 +45,16 @@ params_test = {
         'metrics': ['mean_squared_error'],
         'callbacks': ['image_reconstruction']
     },
-    'optim':{
+    'optim': {
         'algo': {
             'name': 'adam',
             'params': {'lr': 1e-3}
         },
-        'lr_schedule':{
+        'lr_schedule': {
             'name': 'constant',
             'params': {}
         },
-        'early_stopping':{
+        'early_stopping': {
             'name': 'none',
             'params': {}
         },
@@ -71,6 +72,7 @@ def test_family():
     params = {'family': 'none'}
     with pytest.raises(WrongModelFamilyException):
         train(params)
+
 
 def test_seed():
     p = params_test.copy()

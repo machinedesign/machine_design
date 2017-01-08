@@ -17,11 +17,11 @@ from keras import optimizers
 
 from .objectives import objectives
 from .layers import layers
-from .utils import object_to_dict
 
 custom_objects = {}
 custom_objects.update(objectives)
 custom_objects.update(layers)
+
 
 def activation_function(name, layers=layers):
     """
@@ -46,6 +46,7 @@ def activation_function(name, layers=layers):
     else:
         return Activation(name)
 
+
 def noise(x, name, params):
     """
     noise application helper.
@@ -63,6 +64,7 @@ def noise(x, name, params):
         return x
     else:
         raise ValueError('Unknown noise function')
+
 
 def fully_connected_layers(x, nb_hidden_units, activations, init='glorot_uniform'):
     """
@@ -88,6 +90,7 @@ def fully_connected_layers(x, nb_hidden_units, activations, init='glorot_uniform
         x = Dense(nb_hidden, init=init)(x)
         x = activation_function(act)(x)
     return x
+
 
 def conv2d_layers(x, nb_filters, filter_sizes, activations,
                   init='glorot_uniform', border_mode='valid',
@@ -122,9 +125,11 @@ def conv2d_layers(x, nb_filters, filter_sizes, activations,
     """
     assert len(nb_filters) == len(filter_sizes) == len(activations)
     for nb_filter, filter_size, act in zip(nb_filters, filter_sizes, activations):
-        x = conv_layer(nb_filter, filter_size, filter_size, init=init, border_mode=border_mode, subsample=(stride, stride))(x)
+        x = conv_layer(nb_filter, filter_size, filter_size, init=init,
+                       border_mode=border_mode, subsample=(stride, stride))(x)
         x = activation_function(act)(x)
     return x
+
 
 def conv1d_layers(x, nb_filters, filter_sizes, activations,
                   init='glorot_uniform', border_mode='valid',
@@ -162,6 +167,8 @@ def conv1d_layers(x, nb_filters, filter_sizes, activations,
     return x
 
 rnn_classes = {'GRU': GRU, 'LSTM': LSTM, 'RNN': SimpleRNN}
+
+
 def rnn_stack(x, nb_hidden_units, rnn_type='GRU'):
     rnn_class = rnn_classes[rnn_type]
     for nb_units in nb_hidden_units:
@@ -184,12 +191,14 @@ def build_optimizer(algo_name, algo_params):
     optimizer = optimizer(**algo_params)
     return optimizer
 
+
 def _get_optimizer(name):
     """Get a keras optimizer class from its name"""
     if hasattr(optimizers, name):
         return getattr(optimizers, name)
     else:
         raise Exception('unknown optimizer : {}'.format(name))
+
 
 class WrongModelFamilyException(ValueError):
     """
@@ -200,16 +209,20 @@ class WrongModelFamilyException(ValueError):
     """
     pass
 
+
 def check_family_or_exception(family, expected):
     """if family is not equal to expected, raise WrongModelFamilyException"""
     if family != expected:
-        raise WrongModelFamilyException("expected family to be '{}', got {}".format(expected, family))
+        raise WrongModelFamilyException(
+            "expected family to be '{}', got {}".format(expected, family))
+
 
 def show_model_info(model, print_func=print):
     print_func('Input shape : {}'.format(model.input_shape))
     print_func('Output shape : {}'.format(model.output_shape))
     print_func('Number of parameters : {}'.format(model.count_params()))
     print_func(model.summary())
+
 
 def _get_layers(model):
     for layer in model.layers:
@@ -218,6 +231,7 @@ def _get_layers(model):
                 yield l
         elif isinstance(layer, Layer):
             yield layer
+
 
 def check_model_shape_or_exception(model, shape):
     """
@@ -232,6 +246,7 @@ def check_model_shape_or_exception(model, shape):
         msg = """Wrong output shape of the model, expected : {}, got : {}.
                  Please fix the parameters""".format(shape, model.output_shape[1:])
         raise ValueError(msg)
+
 
 def callback_trigger(callbacks, event_name, *args, **kwargs):
     """

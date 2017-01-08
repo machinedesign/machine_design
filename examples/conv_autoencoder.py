@@ -6,6 +6,7 @@ from machinedesign.viz import grid_of_images_default
 from machinedesign.autoencoder.interface import train
 from machinedesign.autoencoder.interface import generate
 
+
 def main():
     params = {
         'family': 'autoencoder',
@@ -13,14 +14,14 @@ def main():
         'output_col': 'X',
         'model': {
             'name': 'convolutional_bottleneck',
-            'params':{
+            'params': {
                 'stride': 1,
 
                 'encode_nb_filters': [64, 64, 64],
                 'encode_filter_sizes': [5, 5, 5],
                 'encode_activations': ['relu', 'relu', 'relu'],
 
-                'code_activations': [{'name': 'winner_take_all_spatial', 'params':{'nb_active': 1}}],
+                'code_activations': [{'name': 'winner_take_all_spatial', 'params': {'nb_active': 1}}],
 
                 'decode_nb_filters': [],
                 'decode_filter_sizes': [],
@@ -28,11 +29,11 @@ def main():
 
                 'output_filter_size': 13,
                 'output_activation': 'sigmoid'
-             }
+            }
         },
         'data': {
             'train': {
-                'pipeline':[
+                'pipeline': [
                     {"name": "toy",
                      "params": {"nb": 128, "w": 16, "h": 16,
                                 "pw": 2, "ph": 2,
@@ -43,10 +44,10 @@ def main():
                     {"name": "order", "params": {"order": "th"}}
                 ]
             },
-            'transformers':[
+            'transformers': [
             ]
         },
-        'report':{
+        'report': {
             'outdir': 'out',
             'checkpoint': {
                 'loss': 'train_mean_squared_error',
@@ -55,16 +56,16 @@ def main():
             'metrics': ['mean_squared_error'],
             'callbacks': ['image_reconstruction', 'image_features']
         },
-        'optim':{
+        'optim': {
             'algo': {
                 'name': 'adam',
                 'params': {'lr': 1e-3}
             },
-            'lr_schedule':{
+            'lr_schedule': {
                 'name': 'constant',
                 'params': {}
             },
-            'early_stopping':{
+            'early_stopping': {
                 'name': 'basic',
                 'params': {
                     'patience_loss': 'train_mean_squared_error',
@@ -81,22 +82,22 @@ def main():
     }
     train(params)
     params = {
-        'model':{
+        'model': {
             'folder': 'out'
         },
-        'method':{
+        'method': {
             'name': 'iterative_refinement',
             'params': {
                 'seed': 42,
                 'batch_size': 128,
                 'nb_samples': 256,
                 'nb_iter': 100,
-                'binarize':{
+                'binarize': {
                     'name': 'none',
                     'params': {
                     }
                 },
-                'noise':{
+                'noise': {
                     'name': 'none',
                     'params': {}
                 },

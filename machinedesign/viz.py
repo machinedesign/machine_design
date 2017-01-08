@@ -6,6 +6,7 @@ used to report results of the models.
 from functools import partial
 import numpy as np
 
+
 def horiz_merge(left, right):
     """
     merges two images, left and right horizontally to obtain
@@ -34,6 +35,7 @@ def horiz_merge(left, right):
     im_merge[:, 0:left.shape[1]] = left
     im_merge[:, left.shape[1]:] = right
     return im_merge
+
 
 def grid_of_images(M, border=0, bordercolor=[0.0, 0.0, 0.0], shape=None, normalize=False):
     """
@@ -92,20 +94,21 @@ def grid_of_images(M, border=0, bordercolor=[0.0, 0.0, 0.0], shape=None, normali
         n0 = shape[0]
         n1 = shape[1]
 
-    im = np.array(bordercolor)*np.ones(
-                             ((height+border)*n1+border,(width+border)*n0+border, 1),dtype='<f8')
+    im = np.array(bordercolor) * np.ones(
+        ((height + border) * n1 + border, (width + border) * n0 + border, 1), dtype='<f8')
     for i in range(n0):
         for j in range(n1):
-            if i*n1+j < numimages:
-                im[j*(height+border)+border:(j+1)*(height+border)+border,
-                   i*(width+border)+border:(i+1)*(width+border)+border,:] = np.concatenate((
-                  np.concatenate((M[i*n1+j,:,:,:],
-                         bordercolor*np.ones((height,border,3),dtype=float)), 1),
-                  bordercolor*np.ones((border,width+border,3),dtype=float)
-                  ), 0)
+            if i * n1 + j < numimages:
+                im[j * (height + border) + border:(j + 1) * (height + border) + border,
+                   i * (width + border) + border:(i + 1) * (width + border) + border, :] = np.concatenate((
+                       np.concatenate((M[i * n1 + j, :, :, :],
+                                       bordercolor * np.ones((height, border, 3), dtype=float)), 1),
+                       bordercolor * np.ones((border, width + border, 3), dtype=float)
+                   ), 0)
     return im
 
 grid_of_images_default = partial(grid_of_images, border=1, bordercolor=(0.3, 0, 0))
+
 
 def reshape_to_images(x, input_shape=None):
     """

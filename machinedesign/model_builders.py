@@ -28,6 +28,7 @@ from .common import noise
 from .common import conv2d_layers
 from .common import check_model_shape_or_exception
 
+
 def fully_connected(params, input_shape, output_shape):
     """
     stack of fully connected layers
@@ -61,11 +62,13 @@ def fully_connected(params, input_shape, output_shape):
     model = Model(input=inp, output=out)
     return model
 
+
 def _fully_connected_stack(x, params):
     nb_hidden_units = params['nb_hidden_units']
     hidden_activations = params['activations']
     x = fully_connected_layers(x, nb_hidden_units, hidden_activations)
     return x
+
 
 def convolutional(params, input_shape, output_shape):
     """
@@ -94,12 +97,13 @@ def convolutional(params, input_shape, output_shape):
         border_mode='valid',
         stride=1,
         conv_layer=Convolution2D)
-    out= x
+    out = x
     if len(output_shape) == 1:
         out = GlobalAveragePooling2D()(out)
     model = Model(input=inp, output=out)
     check_model_shape_or_exception(model, output_shape)
     return model
+
 
 def _convolutional_stack(x, params):
     nb_filters = params['nb_filters']
@@ -117,6 +121,7 @@ def _convolutional_stack(x, params):
         conv_layer=Convolution2D)
     return x
 
+
 def _upconvolutional_stack(x, params):
     nb_filters = params['nb_filters']
     filter_sizes = params['filter_sizes']
@@ -133,11 +138,12 @@ def _upconvolutional_stack(x, params):
         conv_layer=UpConv2D if stride > 1 else Convolution2D)
     return x
 
+
 def fc_upconvolutional(params, input_shape, output_shape):
     """
 
     input -> fc1 -> fc2 -> ... -> fc_n -> reshape -> conv1 -> conv2 -> ... -> output
-    
+
     params
     ------
 

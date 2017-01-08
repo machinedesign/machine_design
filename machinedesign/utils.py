@@ -4,9 +4,11 @@ this module contains a common set of general purpose utility functions
 import os
 import csv
 
+
 def object_to_dict(obj):
     """return the attributes of an object"""
     return obj.__dict__
+
 
 def mkdir_path(path):
     """
@@ -15,6 +17,7 @@ def mkdir_path(path):
     """
     if not os.access(path, os.F_OK):
         os.makedirs(path)
+
 
 def write_csv(iterable, filename):
     """
@@ -45,6 +48,7 @@ axes = {
     'time_features': 2,
     'features': 1
 }
+
 
 def get_axis(axis):
     """ get axis index from a human readable name"""

@@ -4,18 +4,21 @@ common to models.
 """
 import numpy as np
 
+
 def mean_squared_error(y_true, y_pred):
     """mean squared error (mean over all axes except the first)"""
     axes = tuple(range(1, len(y_true.shape)))
     score = ((y_true - y_pred)**2).mean(axis=axes)
     return score
 
+
 def binary_crossentropy(y_true, y_pred, eps=1e-5):
     """ binary cross entropy (mean over all axes except the first)"""
     axes = tuple(range(1, len(y_true.shape)))
-    y_pred = np.clip(y_pred, eps, 1 - eps)#avoid nans, like done in keras
+    y_pred = np.clip(y_pred, eps, 1 - eps)  # avoid nans, like done in keras
     score = -(y_true * np.log(y_pred) + (1 - y_true) * np.log(1 - y_pred))
     return score.mean(axis=axes)
+
 
 def categorical_crossentropy(y_true, y_pred):
     """
@@ -36,6 +39,7 @@ metrics = {
     'binary_crossentropy': binary_crossentropy,
     'categorical_crossentropy': categorical_crossentropy
 }
+
 
 def compute_metric(get_true_and_pred, metric):
     """

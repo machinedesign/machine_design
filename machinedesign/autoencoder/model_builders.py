@@ -15,6 +15,7 @@ from ..common import conv1d_layers
 from ..common import check_model_shape_or_exception
 from ..common import fully_connected_layers
 
+
 def convolutional_bottleneck(params, input_shape, output_shape):
     """
     conv1->conv2->...conv_h -> code_activations(conv_h)...-> conv_n
@@ -95,6 +96,7 @@ def convolutional_bottleneck(params, input_shape, output_shape):
     check_model_shape_or_exception(model, output_shape)
     return model
 
+
 def convolutional_rnn_autoencoder(params, input_shape, output_shape):
     assert input_shape == output_shape
     max_length = input_shape[0]
@@ -123,6 +125,7 @@ def convolutional_rnn_autoencoder(params, input_shape, output_shape):
     model = Model(input=inp, output=out)
     check_model_shape_or_exception(model, output_shape)
     return model
+
 
 def rnn_rnn_autoencoder(params, input_shape, output_shape):
     assert input_shape == output_shape

@@ -15,6 +15,7 @@ from .data import intX
 
 EPS = 1e-10
 
+
 class Standardize:
 
     """
@@ -82,6 +83,7 @@ class Standardize:
             self.input_shape_ = X.shape[1:]
             self.output_shape_ = X.shape[1:]
 
+
 class ColorDiscretizer:
     """
     Color discretizer transformer.
@@ -115,6 +117,7 @@ class ColorDiscretizer:
         the shape.
 
     """
+
     def __init__(self, nb_centers=5, batch_size=1000):
         # assume centers has shape (nb_centers, nb_channels)
         self.batch_size = batch_size
@@ -134,7 +137,7 @@ class ColorDiscretizer:
         nb, h, w, nb_colors = X.shape
         X = X.reshape((nb * h * w, nb_colors))
         self._kmeans.partial_fit(X)
-        self.centers = self._kmeans.cluster_centers_# (nb_centers, nb_channels)
+        self.centers = self._kmeans.cluster_centers_  # (nb_centers, nb_channels)
         if not self.input_shape_ and not self.output_shape_:
             self.input_shape_ = input_shape[1:]
             self.output_shape_ = (self.nb_centers,) + X.shape[2:]
@@ -143,17 +146,19 @@ class ColorDiscretizer:
     def transform(self, X):
         self._check_if_fitted()
         # assume X has shape (nb_examples, nb_channels, h, w)
-        X = X[:, :, :, :, np.newaxis] #(nb_examples, nb_channels, h, w, 1)
-        centers = self.centers.T # (nb_channels, nb_centers)
+        X = X[:, :, :, :, np.newaxis]  # (nb_examples, nb_channels, h, w, 1)
+        centers = self.centers.T  # (nb_channels, nb_centers)
         nb_centers = centers.shape[1]
-        centers = centers[np.newaxis, :, np.newaxis, np.newaxis, :]#(1, nb_channels, 1, 1, nb_centers)
+        # (1, nb_channels, 1, 1, nb_centers)
+        centers = centers[np.newaxis, :, np.newaxis, np.newaxis, :]
         outputs = []
         for i in range(0, len(X), self.batch_size):
-            dist = np.abs(X[i:i + self.batch_size] - centers) # (nb_examples, nb_channels, h, w, nb_centers)
-            dist = dist.sum(axis=1) # (nb_examples, h, w, nb_centers)
-            out = dist.argmin(axis=3) # (nb_examples, h, w)
-            out = onehot(out, D=nb_centers) # (nb_examples, h, w, nb_centers)
-            out = out.transpose((0, 3, 1, 2))# (nb_examples, nb_centers, h, w)
+            # (nb_examples, nb_channels, h, w, nb_centers)
+            dist = np.abs(X[i:i + self.batch_size] - centers)
+            dist = dist.sum(axis=1)  # (nb_examples, h, w, nb_centers)
+            out = dist.argmin(axis=3)  # (nb_examples, h, w)
+            out = onehot(out, D=nb_centers)  # (nb_examples, h, w, nb_centers)
+            out = out.transpose((0, 3, 1, 2))  # (nb_examples, nb_centers, h, w)
             outputs.append(out)
         return np.concatenate(outputs, axis=0)
 
@@ -167,7 +172,8 @@ class ColorDiscretizer:
         nb_channels = X.shape[1]
         X = X.reshape((nb, h, w, nb_channels))
         X = X.transpose((0, 3, 1, 2))
-        return X # (nb_examples, nb_channels, h, w)
+        return X  # (nb_examples, nb_channels, h, w)
+
 
 def onehot(X, D=10):
     """
@@ -204,6 +210,7 @@ transformers = {
     'ColorDiscretizer': ColorDiscretizer
 }
 
+
 def make_transformers_pipeline(transformer_list, transformers=transformers):
     """
     helpers create a list of instances of Transformer.
@@ -226,6 +233,7 @@ def make_transformers_pipeline(transformer_list, transformers=transformers):
 
     """
     return [transformers[t['name']](**t['params']) for t in transformer_list]
+
 
 def fit_transformers(transformer_list, iter_generator):
     """
@@ -251,6 +259,7 @@ def fit_transformers(transformer_list, iter_generator):
                 X = tp.transform(X)
             t.partial_fit(X)
 
+
 def transform(iterator, transformer_list):
     """
     transform an iterator using a list of Transformer
@@ -273,6 +282,7 @@ def transform(iterator, transformer_list):
         d = transform_one(d, transformer_list)
         yield d
 
+
 def transform_one(d, transformer_list):
     """
     apply a list of transformers to `d`
@@ -280,6 +290,7 @@ def transform_one(d, transformer_list):
     for t in transformer_list:
         d = t.transform(d)
     return d
+
 
 def inverse_transform_one(d, transformer_list):
     """

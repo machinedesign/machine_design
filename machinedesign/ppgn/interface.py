@@ -15,9 +15,11 @@ from ..common import mkdir_path
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
+
 def train(params):
     # no need for training ppgn
     pass
+
 
 def generate(params):
     nb_samples = params['nb_samples']
@@ -38,7 +40,7 @@ def generate(params):
     autoencoder = load_model(autoencoder_filename, custom_objects=custom_objects)
     generator = load_model(genetor_filename, custom_objects=custom_objects)
     classifier = load_model(classifier_filename, custom_objects=custom_objects)
-    
+
     # follow paper notation (see eq. 11 of paper)
     C = classifier
     G = generator
@@ -65,22 +67,27 @@ def generate(params):
 
     # get the two needed terms (see eq. 11 of paper)
 
-    h_rec = H(h) - h # diff between reconstruction and current feature space, shape : e.g (nb_examples, hid)
-    x = G(h) # generated objects from feature space, shape : e.g (nb_examples, c, h, w)
-    y = K.log(C(x)) # predicted probabilities of the classifier, shape : e.g (nb_examples, nb_classes)
+    # diff between reconstruction and current feature space, shape : e.g (nb_examples, hid)
+    h_rec = H(h) - h
+    x = G(h)  # generated objects from feature space, shape : e.g (nb_examples, c, h, w)
+    y = K.log(C(x))  # predicted probabilities of the classifier, shape : e.g (nb_examples, nb_classes)
     y_prob = C(x)
-    dc_dh =  K.gradients(y[:, class_indices].sum(), h) # feature space gradients, shape : e.g (nb_examples, hid)
+    # feature space gradients, shape : e.g (nb_examples, hid)
+    dc_dh = K.gradients(y[:, class_indices].sum(), h)
 
     delta_h = e1 * h_rec + e2 * dc_dh
-    
+
     delta_h_func = K.function([h, K.learning_phase()], delta_h)
-    get_delta_h = lambda hid:delta_h_func([hid, 0]) # just a wrapper of the above to make it more readable
+    # just a wrapper of the above to make it more readable
+    get_delta_h = lambda hid: delta_h_func([hid, 0])
 
     generate_func = K.function([h, K.learning_phase()], x)
-    get_generated = lambda hid:generate_func([hid, 0]) # just a wrapper of the above to make it more readable
+    # just a wrapper of the above to make it more readable
+    get_generated = lambda hid: generate_func([hid, 0])
 
     classify_func = K.function([x, K.learning_phase()], y_prob)
-    predict_probas = lambda inp:classify_func([inp, 0]) # just a wrapper of the above to make it more readable
+    # just a wrapper of the above to make it more readable
+    predict_probas = lambda inp: classify_func([inp, 0])
 
     hid = rng.normal(0, 1, size=(nb_iter + 1, nb_samples) + H.output_shape[1:])
     generated = np.zeros((nb_iter + 1, nb_samples) + G.output_shape[1:])
@@ -88,11 +95,13 @@ def generate(params):
     for i in range(1, nb_iter + 1):
         logger.info('Iteration {}'.format(i))
         # update feature space and generate
-        noise = (rng.normal(0, e3, size=hid[i - 1].shape) if e3>0 else 0)
+        noise = (rng.normal(0, e3, size=hid[i - 1].shape) if e3 > 0 else 0)
         dh = (get_delta_h(hid[i - 1]) + noise)
         alpha = 1. / (np.abs(dh).mean())
-        hid[i] = hid[i - 1] + alpha * dh 
-        hid[i] = np.clip(hid[i], 0, 30) # important to keep this in the "domain", how to do that in general ? we need a dataset or the user can specify it
+        hid[i] = hid[i - 1] + alpha * dh
+        # important to keep this in the "domain", how to do that in general ? we
+        # need a dataset or the user can specify it
+        hid[i] = np.clip(hid[i], 0, 30)
         generated[i] = get_generated(hid[i])
         probas[i] = predict_probas(generated[i])
         # report classifier probas

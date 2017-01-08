@@ -19,7 +19,6 @@ from .data import get_nb_minibatches
 from .data import get_shapes
 from .data import batch_iterator
 from .data import dict_apply
-from .data import operators
 from .data import floatX
 
 from .callbacks import BudgetFinishedException
@@ -68,6 +67,7 @@ default_config = Config(
     metrics=metrics,
     objectives=objectives
 )
+
 
 def train(params,
           config=default_config,
@@ -124,7 +124,7 @@ def train(params,
     def transformers_data_generator():
         it = pipeline_load(train_pipeline, operators=config.data_operators)
         it = batch_iterator(it, batch_size=batch_size, repeat=False, cols=[input_col])
-        it = map(lambda d:d[input_col], it)
+        it = map(lambda d: d[input_col], it)
         return it
 
     fit_transformers(
@@ -149,6 +149,7 @@ def train(params,
     logger.info('Number of training examples : {}'.format(nb_train_samples))
     logger.info('Number of training minibatches : {}'.format(nb_minibatches))
     apply_transformers = partial(transform_one, transformer_list=transformers)
+
     def train_data_generator(batch_size=batch_size, repeat=False):
         it = pipeline_load(train_pipeline)
         it = batch_iterator(it, batch_size=batch_size, repeat=repeat, cols=[input_col, output_col])
@@ -165,7 +166,7 @@ def train(params,
         input_shape=shapes[input_col],
         output_shape=shapes[output_col],
         builders=config.model_builders)
-    #TODO: understand more this
+    # TODO: understand more this
     # I did this to avoid missinginputerror of K.learning_phase when
     # using a model in the loss such as objectness. If the model does
     # not have any layer that differ in train/test phase (such as dropout)
@@ -262,11 +263,14 @@ def train(params,
             break
     return model
 
+
 def load(folder):
     pass
 
+
 def generate(params):
     pass
+
 
 def _update_history(model, logs):
     for k, v in logs.items():
@@ -274,14 +278,17 @@ def _update_history(model, logs):
             model.history.history[k] = []
         model.history.history[k].append(v)
 
+
 def _build_compute_func(predict, data_generator, metric,
                         input_col='X', output_col='y',
                         aggregate=np.mean):
-    get_real_and_pred = lambda: map(lambda data: (data[input_col], predict(data[input_col])), data_generator())
+    get_real_and_pred = lambda: map(lambda data: (
+        data[input_col], predict(data[input_col])), data_generator())
     compute_func = lambda: aggregate(compute_metric(get_real_and_pred, metric))
     return compute_func
 
+
 def _build_model(name, params, input_shape, output_shape, builders={}):
     model_builder = builders[name]
-    model = model_builder(params, input_shape, output_shape) # keras model
+    model = model_builder(params, input_shape, output_shape)  # keras model
     return model

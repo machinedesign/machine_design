@@ -3,6 +3,7 @@ import pytest
 
 from machinedesign.transformers import Standardize
 
+
 def test_standardize():
     np.random.seed(42)
     t = Standardize(axis=0)

@@ -16,6 +16,7 @@ from keras.models import Model
 from .utils import object_to_dict
 from .utils import get_axis
 
+
 def dummy(y_true, y_pred):
     """
     dummy loss outputing a scalar of zero. it is used to
@@ -24,17 +25,20 @@ def dummy(y_true, y_pred):
     """
     return (y_pred * 0).mean()
 
+
 def mean_squared_error(y_true, y_pred):
     """mean squared error (mean over all axes except the first)"""
     y_true = y_true.flatten(2)
     y_pred = y_pred.flatten(2)
     return K.mean(K.square(y_pred - y_true), axis=1)
 
+
 def categorical_crossentropy(y_true, y_pred):
     """categorical crossentropy (mean over all axes except the first)"""
     y_true = y_true.flatten(2)
     y_pred = y_pred.flatten(2)
     return K.categorical_crossentropy(y_pred, y_true)
+
 
 def feature_space_mean_squared_error(y_true, y_pred, model_filename=None, layer=None):
     """
@@ -50,17 +54,19 @@ def feature_space_mean_squared_error(y_true, y_pred, model_filename=None, layer=
     """
     if model_filename is None or layer is None:
         warnings.warn('In case you are willing to train this model, please specify `model_filename` and `layer` in the parameters of the loss.'
-                       'In case you will just use the model, it is fine. When loading a model with keras through `load_model` '
-                       'the parameters of the loss functions do not get passsed, so if you are just willing to use the model'
-                       'it is fine', RuntimeWarning)
+                      'In case you will just use the model, it is fine. When loading a model with keras through `load_model` '
+                      'the parameters of the loss functions do not get passsed, so if you are just willing to use the model'
+                      'it is fine', RuntimeWarning)
         return dummy(y_true, y_pred)
     model = load_model(model_filename)
     layer_names = set([lay.name for lay in model.layers])
     if layer not in layer_names:
-        raise ValueError('layer {} does not exist, available layers are : {}'.format(layer, layer_names))
+        raise ValueError(
+            'layer {} does not exist, available layers are : {}'.format(layer, layer_names))
     model_layer = Model(input=model.layers[0].input, output=model.get_layer(layer).output)
     model_layer.trainable = False
     return mean_squared_error(model_layer(y_true), model_layer(y_pred)).mean()
+
 
 def axis_categorical_crossentropy(y_true, y_pred, axis=1):
     """
@@ -84,8 +90,8 @@ def axis_categorical_crossentropy(y_true, y_pred, axis=1):
 
     vector
     """
-    yt = y_true.argmax(axis=get_axis(axis)) # supposed to be onehot in the axis 'axis'
-    yt = yt.flatten()#convert it to a vector
+    yt = y_true.argmax(axis=get_axis(axis))  # supposed to be onehot in the axis 'axis'
+    yt = yt.flatten()  # convert it to a vector
     perm = list(range(y_pred.ndim))
     # permute 'axis' and the first axis
     perm[axis], perm[0] = perm[0], perm[axis]
@@ -94,6 +100,7 @@ def axis_categorical_crossentropy(y_true, y_pred, axis=1):
     ypr = ypr.reshape((ypr.shape[0], -1))
     ypr = ypr.T
     return K.categorical_crossentropy(ypr, yt).mean()
+
 
 def objectness(y_true, y_pred, model_filename=None):
     """
@@ -126,12 +133,14 @@ def objectness(y_true, y_pred, model_filename=None):
     score = _compute_objectness(probas)
     return score
 
+
 def _compute_objectness(probas):
     pr = probas
     marginal = pr.mean(axis=0, keepdims=True)
     score = pr * K.log(pr / marginal)
     score = score.sum(axis=1)
     return score.mean()
+
 
 def loss_sum(y_true, y_pred, terms=[]):
     """
@@ -171,6 +180,7 @@ objectives = {
 
 objectives = object_to_dict(keras_objectives)
 objectives.update(objectives)
+
 
 def get_loss(loss, objectives=objectives):
     """

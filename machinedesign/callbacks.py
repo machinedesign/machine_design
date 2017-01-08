@@ -10,8 +10,10 @@ import warnings
 import keras.backend as K
 from keras.callbacks import Callback
 
+
 class Dummy(Callback):
     pass
+
 
 class EarlyStopping(Callback):
     '''
@@ -39,6 +41,7 @@ class EarlyStopping(Callback):
             mode, the direction is automatically inferred
             from the name of the monitored quantity.
     '''
+
     def __init__(self, monitor='val_loss', min_delta=0, patience=0, verbose=0, mode='auto'):
         super(EarlyStopping, self).__init__()
 
@@ -92,6 +95,8 @@ class EarlyStopping(Callback):
     def on_train_end(self, logs={}):
         if self.stopped_epoch > 0 and self.verbose > 0:
             print('Epoch %05d: early stopping' % (self.stopped_epoch))
+
+
 class LearningRateScheduler(Callback):
     """
     Callback for learning rate scheduling
@@ -153,6 +158,7 @@ class LearningRateScheduler(Callback):
                 `lr` is the learning rate used in the interval defined
                  by `range`.
     """
+
     def __init__(self, name='decrease_when_stop_improving',
                  params=None, print_func=print):
         ""
@@ -202,12 +208,15 @@ class LearningRateScheduler(Callback):
         new_lr = max(new_lr, min_lr)
         if not np.isclose(new_lr, old_lr):
             self.print_func('Learning rate changed.')
-            self.print_func('prev learning rate : {}, new learning rate : {}'.format(old_lr, new_lr))
+            self.print_func(
+                'prev learning rate : {}, new learning rate : {}'.format(old_lr, new_lr))
         K.set_value(self.model.optimizer.lr, new_lr)
         logs['lr'] = new_lr
 
+
 def lr_schedule_constant(old_lr):
     return old_lr
+
 
 def lr_schedule_decrease_when_stop_improving(old_lr,
                                              patience,
@@ -251,6 +260,7 @@ def lr_schedule_decrease_when_stop_improving(old_lr,
             new_lr = old_lr
     return new_lr
 
+
 def lr_schedule_decrease_every(old_lr, every, shrink_factor, epoch):
     """
     divide the  learning rate by `shrink_factor` periodically
@@ -269,6 +279,7 @@ def lr_schedule_decrease_every(old_lr, every, shrink_factor, epoch):
     else:
         new_lr = old_lr
     return new_lr
+
 
 def lr_schedule_manual(old_lr, schedule, epoch):
     """
@@ -295,6 +306,7 @@ def lr_schedule_manual(old_lr, schedule, epoch):
             break
     return new_lr
 
+
 class TimeBudget(Callback):
     """
     a time budget callback that raises BudgetFinishedException() when
@@ -306,6 +318,7 @@ class TimeBudget(Callback):
     budget_secs: int
         budget in secs
     """
+
     def __init__(self, budget_secs=float('inf'), time=time.time):
         self.start = time()
         self.time = time
@@ -315,6 +328,7 @@ class TimeBudget(Callback):
         t = self.time()
         if t - self.start >= self.budget_secs:
             raise BudgetFinishedException()
+
 
 class RecordEachEpoch(Callback):
     """
@@ -328,6 +342,7 @@ class RecordEachEpoch(Callback):
     compute_fn: callable
         called as `compute_fn()` each epoch to get a value.
     """
+
     def __init__(self, name, compute_fn, on_logs=True):
         self.name = name
         self.compute_fn = compute_fn
@@ -340,6 +355,7 @@ class RecordEachEpoch(Callback):
             logs[self.name] = val
         self.values.append(val)
 
+
 class DoEachEpoch(Callback):
 
     """
@@ -350,12 +366,14 @@ class DoEachEpoch(Callback):
     func: callable
         called as `func(self)` each epoch.
     """
+
     def __init__(self, func):
         self.func = func
 
     def on_epoch_end(self, epoch, logs={}):
         self.epoch = epoch
         self.func(self)
+
 
 class ModelsCheckpoint(Callback):
     '''
@@ -393,6 +411,7 @@ class ModelsCheckpoint(Callback):
             is saved (`model.save(filepath)`).
 
     '''
+
     def __init__(self, models, filepaths, monitor='val_loss', verbose=0,
                  save_best_only=False, save_weights_only=False,
                  mode='auto'):
@@ -458,6 +477,7 @@ class ModelsCheckpoint(Callback):
                 for model, filepath in zip(self.models, self.filepaths):
                     model.save(filepath, overwrite=True)
 
+
 def build_early_stopping_callback(name, params, outdir='out'):
     """
     Helper to build EarlyStopping callback
@@ -493,6 +513,7 @@ def build_early_stopping_callback(name, params, outdir='out'):
         return callback
     elif name == 'none':
         return Dummy()
+
 
 def build_models_checkpoint_callback(params, models, filepaths):
     """
@@ -530,6 +551,7 @@ def build_models_checkpoint_callback(params, models, filepaths):
         mode='auto' if loss else 'min')
     return callback
 
+
 def build_lr_schedule_callback(name, params, print_func=print):
     """
     Helper to build LearningRateSchedule callback
@@ -544,9 +566,11 @@ def build_lr_schedule_callback(name, params, print_func=print):
     callback = LearningRateScheduler(name=name, params=params, print_func=print)
     return callback
 
+
 class BudgetFinishedException(Exception):
     """raised when the time budget is reached"""
     pass
+
 
 class StopTrainingException(Exception):
     """raised when early stopping asks to stop training"""

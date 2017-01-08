@@ -9,8 +9,9 @@ from keras.layers import Convolution2D
 from .utils import get_axis
 from .data import floatX
 
+
 class ksparse(Layer):
-    #TODO make it compatible with tensorflow (only works with theano)
+    # TODO make it compatible with tensorflow (only works with theano)
     """
     For each example, sort activations, then zerout a proportion of zero_ratio from the smallest activations,
     that rest (1 - zero_ratio) is kept as it is.
@@ -23,6 +24,7 @@ class ksparse(Layer):
     [1] Makhzani, A., & Frey, B. (2013). k-Sparse Autoencoders. arXiv preprint arXiv:1312.5663.
 
     """
+
     def __init__(self, zero_ratio=0,  **kwargs):
         super(ksparse, self).__init__(**kwargs)
         self.zero_ratio = zero_ratio
@@ -39,8 +41,9 @@ class ksparse(Layer):
         base_config = super(ksparse, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
 
+
 class winner_take_all_spatial(Layer):
-    #TODO make it compatible with tensorflow (only works with theano)
+    # TODO make it compatible with tensorflow (only works with theano)
 
     """
     Winner take all spatial sparsity defined in [1].
@@ -62,13 +65,14 @@ class winner_take_all_spatial(Layer):
     In Advances in Neural Information Processing Systems (pp. 2791-2799).
 
     """
+
     def __init__(self, nb_active=1, **kwargs):
         super(winner_take_all_spatial, self).__init__(**kwargs)
         self.nb_active = nb_active
 
     def call(self, X, mask=None):
         if self.nb_active == 0:
-            return X*0
+            return X * 0
         elif self.nb_active == 1:
             return _winner_take_all_spatial_one_active(X)
         else:
@@ -87,9 +91,11 @@ class winner_take_all_spatial(Layer):
         base_config = super(winner_take_all_spatial, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
 
+
 def _winner_take_all_spatial_one_active(X):
     mask = (_equals(X, K.max(X, axis=(2, 3), keepdims=True))) * 1
     return X * mask
+
 
 class winner_take_all_channel(Layer):
     """
@@ -104,6 +110,7 @@ class winner_take_all_channel(Layer):
         size of the stride
 
     """
+
     def __init__(self, stride=1, **kwargs):
         super(winner_take_all_channel, self).__init__(**kwargs)
         self.stride = stride
@@ -121,8 +128,10 @@ class winner_take_all_channel(Layer):
         base_config = super(winner_take_all_channel, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
 
+
 def _equals(x, y, eps=1e-8):
     return K.abs(x - y) <= eps
+
 
 class axis_softmax(Layer):
     """
@@ -136,6 +145,7 @@ class axis_softmax(Layer):
     axis: int(default=1)
         axis where to do softmax
     """
+
     def __init__(self, axis=1, **kwargs):
         super(axis_softmax, self).__init__(**kwargs)
         self.axis = get_axis(axis)
@@ -150,6 +160,7 @@ class axis_softmax(Layer):
         base_config = super(axis_softmax, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
 
+
 class UpConv2D(Convolution2D):
     """
     This is a simple up convolution layer that rescales the dimension of a
@@ -157,6 +168,7 @@ class UpConv2D(Convolution2D):
     It only works with border_mode='same', if it is not the case (border_mode != 'same'), an
     exception will be thrown.
     """
+
     def get_output_shape_for(self, input_shape):
         self._check_stride()
         N, c, h, w = input_shape
@@ -176,7 +188,7 @@ class UpConv2D(Convolution2D):
         s = sh
         # don't do anything if there is any subsampling
         if s > 1:
-            #TODO make this comptabile with tensorflow
+            # TODO make this comptabile with tensorflow
             import theano.tensor as T
             shape = x.shape
             x = x.reshape((x.shape[0], x.shape[1], x.shape[2], 1, x.shape[3], 1))

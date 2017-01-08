@@ -34,6 +34,7 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+
 def build_data_generator(pipeline, cols='all'):
     """
     take a `datakit` pipeline and returns a function that
@@ -60,6 +61,7 @@ def build_data_generator(pipeline, cols='all'):
         it = batch_iterator(it, batch_size=batch_size, repeat=repeat, cols=cols)
         return it
     return _gen
+
 
 def train(params, model_builders={}, logger=logger, callbacks=[],
           build_data_generator=build_data_generator):
@@ -139,7 +141,7 @@ def train(params, model_builders={}, logger=logger, callbacks=[],
 
     # build callbacks for all the models (predictors + evaluators)
 
-    #callbacks specific to each model (predictors + evaluators)
+    # callbacks specific to each model (predictors + evaluators)
     callbacks_list = build_models_callbacks(models_and_evaluators, data_generators=data_generators)
     # general callbacks
     time_budget = TimeBudget(budget_secs=budget_secs)
@@ -194,6 +196,7 @@ def train(params, model_builders={}, logger=logger, callbacks=[],
             logger.info('Stop training.')
             break
     return models
+
 
 def build_model_and_evaluators_from_spec(spec, col_shapes, builders={},
                                          override_input_shape=None,
@@ -277,13 +280,13 @@ def build_model_and_evaluators_from_spec(spec, col_shapes, builders={},
         type_ = evaluator_spec['type']
         get_real_output, get_fake_output, output_shape = get_evaluator_output_funcs_and_shape(type_)
         evaluator = build_model_and_evaluators_from_spec(
-                evaluator_spec,
-                col_shapes=col_shapes,
-                builders=builders,
-                override_output_shape=output_shape)
+            evaluator_spec,
+            col_shapes=col_shapes,
+            builders=builders,
+            override_output_shape=output_shape)
         evaluator.get_real_output = get_real_output
         evaluator.get_fake_output = get_fake_output
-        evaluator.get_output_col = lambda d:get_real_output(evaluator.get_input_col(d), backend=np)
+        evaluator.get_output_col = lambda d: get_real_output(evaluator.get_input_col(d), backend=np)
         evaluators.append(evaluator)
 
     evaluator_by_name = {evaluator.name: evaluator for evaluator in evaluators}
@@ -295,13 +298,14 @@ def build_model_and_evaluators_from_spec(spec, col_shapes, builders={},
 
     model.loss_func = loss_aggregate(loss_coefs, loss_funcs)
     if input_col:
-        model.get_input_col = lambda d:d[input_col]
+        model.get_input_col = lambda d: d[input_col]
     if output_col:
-        model.get_output_col = lambda d:d[output_col]
+        model.get_output_col = lambda d: d[output_col]
     model.optimizer = build_optimizer(algo_name, algo_params)
     model.evaluators = evaluators
     model.spec = spec
     return model
+
 
 def build_model(type, params, input_shape, output_shape, builders={}):
     """
@@ -334,8 +338,9 @@ def build_model(type, params, input_shape, output_shape, builders={}):
 
     """
     model_builder = builders[type]
-    model = model_builder(params, input_shape, output_shape) # keras Model
+    model = model_builder(params, input_shape, output_shape)  # keras Model
     return model
+
 
 def get_evaluator_output_funcs_and_shape(type_):
     """
@@ -364,11 +369,12 @@ def get_evaluator_output_funcs_and_shape(type_):
 
     """
     if type_ == 'discriminator':
-        get_real_output = lambda Y, backend:backend.ones((Y.shape[0], 1))
-        get_fake_output = lambda Y, backend:backend.zeros((Y.shape[0], 1))
+        get_real_output = lambda Y, backend: backend.ones((Y.shape[0], 1))
+        get_fake_output = lambda Y, backend: backend.zeros((Y.shape[0], 1))
         return get_real_output, get_fake_output, (1,)
     else:
         raise ValueError('Expected type_ to be discriminator, got : {}'.format(type_))
+
 
 def build_loss_func_from_evaluator(evaluator):
     """
@@ -397,6 +403,7 @@ def build_loss_func_from_evaluator(evaluator):
     loss.__name__ = 'loss_evaluator'
     return loss
 
+
 def loss_aggregate(coefs, funcs):
     """
 
@@ -423,6 +430,7 @@ def loss_aggregate(coefs, funcs):
     loss.__name__ = 'loss_aggregate'
     return loss
 
+
 def build_models_callbacks(models, data_generators):
     """
 
@@ -444,8 +452,10 @@ def build_models_callbacks(models, data_generators):
     """
     callbacks = []
     for model in models:
-        callbacks += build_callbacks(spec=model.spec.get('callbacks', []), model=model, data=data_generators)
+        callbacks += build_callbacks(spec=model.spec.get('callbacks', []),
+                                     model=model, data=data_generators)
     return callbacks
+
 
 def build_callbacks(spec, model, data):
     """
@@ -492,6 +502,7 @@ def build_callbacks(spec, model, data):
         cb.data_iterators = data
     return callbacks
 
+
 def build_metric_callbacks(metrics, model, data_generators, pred_batch_size=128, name_prefix=''):
     """
 
@@ -533,20 +544,23 @@ def build_metric_callbacks(metrics, model, data_generators, pred_batch_size=128,
             metric_callbacks.append(callback)
     return metric_callbacks
 
+
 def build_compute_func(predict, data_generator, metric,
                        get_input_col, get_output_col,
                        aggregate=np.mean):
-   """
-   Parameters
-   ----------
+    """
+    Parameters
+    ----------
 
 
-   Returns
-   -------
-   """
-   get_real_and_pred = lambda: map(lambda data: (get_output_col(data), predict(get_input_col(data))), data_generator())
-   compute_func = lambda: aggregate(compute_metric(get_real_and_pred, metric))
-   return compute_func
+    Returns
+    -------
+    """
+    get_real_and_pred = lambda: map(lambda data: (get_output_col(
+        data), predict(get_input_col(data))), data_generator())
+    compute_func = lambda: aggregate(compute_metric(get_real_and_pred, metric))
+    return compute_func
+
 
 def compile_models_and_evaluators(models):
     """
@@ -564,6 +578,7 @@ def compile_models_and_evaluators(models):
         model.compile(optimizer=model.optimizer, loss=model.loss_func)
     return models
 
+
 def get_models_and_evaluators(models):
     """
     Parameters
@@ -576,6 +591,7 @@ def get_models_and_evaluators(models):
         for evaluator in model.evaluators:
             yield evaluator
         yield model
+
 
 def train_models_and_evaluators_on_batch(models, train_batch):
     """
@@ -593,6 +609,7 @@ def train_models_and_evaluators_on_batch(models, train_batch):
         Y_fake = model.predict(X)
         for evaluator in model.evaluators:
             train_evaluator_on_batch(evaluator, Y_real, Y_fake)
+
 
 def train_evaluator_on_batch(evaluator, Y_real, Y_fake):
     """

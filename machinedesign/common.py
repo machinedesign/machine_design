@@ -235,11 +235,23 @@ def check_model_shape_or_exception(model, shape):
 
 def callback_trigger(callbacks, event_name, *args, **kwargs):
     """
+
+    call an event on a list of callbacks.
+    the event_name correspond to a method of the class Callback.
+    Available are :
+        - on_train_begin
+        - on_train_end
+        - on_epoch_begin
+        - on_epoch_end
+        - on_batch_begin
+        - on_batch_end
+
     Parameters
     ----------
 
-    Returns
-    -------
+    callbacks : list of Callback
+    event_name : str
+        event to call
     """
     for cb in callbacks:
         getattr(cb, event_name)(*args, **kwargs)

@@ -1,8 +1,11 @@
 import pytest
 import shutil
+import numpy as np
 
 from machinedesign.common import WrongModelFamilyException
 from machinedesign.autoencoder.interface import train
+from machinedesign.autoencoder.interface import _apply_noise
+from machinedesign.autoencoder.interface import _apply_binarization
 
 params_test = {
     'family': 'autoencoder',
@@ -87,3 +90,14 @@ def test_seed():
     model2 = train(params_test)
     shutil.rmtree('tmp')
     assert model1.history_stats == model2.history_stats
+
+
+def test_apply_noise():
+    X = np.ones((1000, 10))
+    rng = np.random.RandomState(42)
+    Y = _apply_noise('masking', {'proba': 0.5}, X, rng=rng)
+    assert np.isclose(Y.mean(axis=0), 0.5, atol=1e-3)
+
+
+def test_binarization():
+    pass

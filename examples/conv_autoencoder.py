@@ -112,5 +112,6 @@ def main():
     img = grid_of_images_default(X)
     imsave('samples.png', img)
 
+
 if __name__ == '__main__':
     main()

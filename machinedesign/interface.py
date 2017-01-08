@@ -18,8 +18,8 @@ from .data import get_nb_samples
 from .data import get_nb_minibatches
 from .data import get_shapes
 from .data import batch_iterator
-from .data import dict_apply
 from .data import floatX
+from datakit.helpers import dict_apply
 
 from .callbacks import BudgetFinishedException
 from .callbacks import StopTrainingException
@@ -282,10 +282,13 @@ def _update_history(model, logs):
 def _build_compute_func(predict, data_generator, metric,
                         input_col='X', output_col='y',
                         aggregate=np.mean):
-    get_real_and_pred = lambda: map(lambda data: (
-        data[input_col], predict(data[input_col])), data_generator())
-    compute_func = lambda: aggregate(compute_metric(get_real_and_pred, metric))
-    return compute_func
+
+    def _get_real_and_pred():
+        return map(lambda data: (data[input_col], predict(data[input_col])), data_generator())
+
+    def _compute_func():
+        return aggregate(compute_metric(_get_real_and_pred, metric))
+    return _compute_func
 
 
 def _build_model(name, params, input_shape, output_shape, builders={}):

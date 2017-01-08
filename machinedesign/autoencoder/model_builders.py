@@ -148,8 +148,26 @@ def rnn_rnn_autoencoder(params, input_shape, output_shape):
     check_model_shape_or_exception(model, output_shape)
     return model
 
+
+def rnn(params, input_shape, output_shape):
+    assert input_shape == output_shape
+
+    rnn_type = params['rnn_type']
+    nb_hidden_units = params['nb_hidden_units']
+    output_activation = params['output_activation']
+
+    inp = Input(input_shape)
+    x = inp
+    x = rnn_stack(x, nb_hidden_units, rnn_type=rnn_type)
+    x = TimeDistributed(Dense(output_shape[1]))(x)
+    out = activation_function(output_activation)(x)
+    model = Model(input=inp, output=out)
+    check_model_shape_or_exception(model, output_shape)
+    return model
+
 builders = {
     'convolutional_bottleneck': convolutional_bottleneck,
     'convolutional_rnn_autoencoder': convolutional_rnn_autoencoder,
-    'rnn_rnn_autoencoder': rnn_rnn_autoencoder
+    'rnn_rnn_autoencoder': rnn_rnn_autoencoder,
+    'rnn': rnn
 }

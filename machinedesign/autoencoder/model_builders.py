@@ -150,6 +150,9 @@ def rnn_rnn_autoencoder(params, input_shape, output_shape):
 
 
 def rnn(params, input_shape, output_shape):
+    """
+    rnm1 -> rnn2-> ... -> rnn_n ->
+    """
     assert input_shape == output_shape
 
     rnn_type = params['rnn_type']

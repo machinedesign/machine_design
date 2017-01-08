@@ -60,7 +60,7 @@ def train(params, config=default_config, custom_callbacks=[], logger=logger):
         custom_callbacks=custom_callbacks + report_callbacks,
         config=config)
 
-def load(folder):
+def load(folder, custom_objects=custom_objects):
     model = load_model(os.path.join(folder, 'model.h5'), custom_objects=custom_objects)
     with open(os.path.join(folder, 'transformers.pkl'), 'rb') as fd:
         transformers = pickle.load(fd)

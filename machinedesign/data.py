@@ -247,8 +247,8 @@ def batch_iterator(iterator, batch_size=128, repeat=True, cols=['X', 'y']):
     batch_size : int(default=128)
         size of minibatches
     repeat: bool
-        if True, `itertools.cycle` is applied to the resulting `iterator` so that
-        it repeats.
+        if True, `itertools.cycle` is applied to the resulting `iterator` so
+        that it repeats.
     cols: list of str or str
         if it is list of str, columns to use from the dicts.
         if it is str and cols=='all', use all columns.
@@ -257,7 +257,8 @@ def batch_iterator(iterator, batch_size=128, repeat=True, cols=['X', 'y']):
 
     iterator of dicts.
     The keys of the dict are `cols` (e.g `X`, `y`).
-    The number of examples for the values in the dict are at max `batch_size` (can be less).
+    The number of examples for the values in the dict are at max `batch_size`
+    (can be less).
 
     """
     if not isinstance(cols, list):

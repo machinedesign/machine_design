@@ -35,9 +35,10 @@ def mean_squared_error(y_true, y_pred):
 
 def categorical_crossentropy(y_true, y_pred):
     """categorical crossentropy (mean over all axes except the first)"""
-    y_true = y_true.flatten(2)
-    y_pred = y_pred.flatten(2)
-    return K.categorical_crossentropy(y_pred, y_true)
+    y_true = y_true.reshape((-1, y_true.shape[-1]))
+    y_true = y_true.argmax(axis=1)
+    y_pred = y_pred.reshape((-1, y_pred.shape[-1]))
+    return -K.log(y_pred[K.arange(0, y_true.shape[0]), y_true]).mean()
 
 
 def feature_space_mean_squared_error(y_true, y_pred, model_filename=None, layer=None):

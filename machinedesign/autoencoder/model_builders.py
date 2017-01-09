@@ -140,8 +140,11 @@ def rnn_rnn_autoencoder(params, input_shape, output_shape):
 
     inp = Input(input_shape)
     x = inp
-    x = rnn_stack(x, encode_nb_hidden_units, rnn_type=rnn_type)
-    x = Flatten()(x)
+    x = rnn_stack(
+        x,
+        encode_nb_hidden_units,
+        rnn_type=rnn_type,
+        return_sequences=False)
     x = fully_connected_layers(x, latent_nb_hidden_units, latent_activations)
     x = RepeatVector(max_length)(x)
     x = rnn_stack(x, decode_nb_hidden_units, rnn_type=rnn_type)
@@ -170,6 +173,7 @@ def rnn(params, input_shape, output_shape):
     model = Model(input=inp, output=out)
     check_model_shape_or_exception(model, output_shape)
     return model
+
 
 builders = {
     'convolutional_bottleneck': convolutional_bottleneck,

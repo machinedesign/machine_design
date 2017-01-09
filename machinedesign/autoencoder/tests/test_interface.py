@@ -93,11 +93,37 @@ def test_seed():
 
 
 def test_apply_noise():
-    X = np.ones((1000, 10))
+    X = np.ones((100000, 10))
     rng = np.random.RandomState(42)
+
+    with pytest.raises(ValueError):
+        Y = _apply_noise('blabla', {}, X, rng=rng)
+
+    Y = _apply_noise('none', {}, X, rng=rng)
+    assert np.all(X == Y)
+
     Y = _apply_noise('masking', {'proba': 0.5}, X, rng=rng)
-    assert np.isclose(Y.mean(axis=0), 0.5, atol=1e-3)
+    assert np.all(np.isclose(Y.mean(axis=0), 0.5, atol=1e-2))
+
+    Y = _apply_noise('gaussian', {'std': 0.01}, X, rng=rng)
+    assert np.all(np.isclose(np.abs(Y - 1).mean(), 0.01, atol=1e-2))
 
 
 def test_binarization():
+    pass
+
+
+def test_load():
+    pass
+
+
+def test_generate():
+    pass
+
+
+def test_report_image_reconstruction():
+    pass
+
+
+def test_report_image_features():
     pass

@@ -34,7 +34,7 @@ def mean_squared_error(y_true, y_pred):
 
 
 def categorical_crossentropy(y_true, y_pred):
-    """categorical crossentropy (mean over all axes except the first)"""
+    """categorical crossentropy assuming the last axis is the axis where categories reside"""
     y_true = y_true.reshape((-1, y_true.shape[-1]))
     y_true = y_true.argmax(axis=1)
     y_pred = y_pred.reshape((-1, y_pred.shape[-1]))

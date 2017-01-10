@@ -11,6 +11,7 @@ from .common import show_model_info
 from .common import callback_trigger
 
 from .utils import mkdir_path
+from .utils import write_csv
 
 from .objectives import get_loss
 from .data import pipeline_load
@@ -255,12 +256,14 @@ def train(params,
         history_stats.append(stats)
         for k, v in stats.items():
             logger.info('{}={:.4f}'.format(k, v))
+        write_csv(history_stats, os.path.join(outdir, 'stats.csv'))
         logger.info('elapsed time : {:.3f}s'.format(time.time() - dt))
 
         # the following happens
         # when early stopping or budget finished
         if stop_training:
             break
+
     return model
 
 

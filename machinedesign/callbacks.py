@@ -185,12 +185,13 @@ class LearningRateScheduler(Callback):
             shrink_factor = params['shrink_factor']
             if mode == 'auto':
                 mode = 'max' if 'acc' in loss else 'min'
+            hist = [stat[loss] for stat in model.history_stats] + [logs[loss]]
             new_lr = lr_schedule_decrease_when_stop_improving(
                 old_lr,
                 patience=patience,
                 mode=mode,
                 shrink_factor=shrink_factor,
-                loss_history=model.history.history[loss] + [logs[loss]])
+                loss_history=hist)
         elif self.name == 'decrease_every':
             every = params['every']
             shrink_factor = params['shrink_factor']

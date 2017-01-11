@@ -1,6 +1,10 @@
 import pytest
 
+import numpy as np
+from keras import backend as K
+
 from machinedesign.callbacks import Callback
+from machinedesign.callbacks import LearningRateScheduler
 from machinedesign.callbacks import lr_schedule_constant
 from machinedesign.callbacks import lr_schedule_decrease_when_stop_improving
 from machinedesign.callbacks import lr_schedule_decrease_every
@@ -26,6 +30,50 @@ class Store(Callback):
 
     def on_batch_end(self, batch, logs={}):
         self.actions.append('{}_batch_end'.format(self.caption))
+
+
+class DummyModel:
+
+    def __init__(self, optimizer):
+        self.optimizer = optimizer
+
+
+class DummyOptimizer:
+
+    def __init__(self, lr=0.1):
+        self.lr = K.variable(lr)
+
+
+def test_learning_rate_callback():
+    # decrease when stop improving along with LearningRateScheduler
+    name = 'decrease_when_stop_improving'
+    params = {
+        'patience': 3,
+        'loss': 'mse',
+        'shrink_factor': 2.
+    }
+    cb = LearningRateScheduler(name=name, params=params)
+    optimizer = DummyOptimizer(lr=0.01)
+    model = DummyModel(optimizer=optimizer)
+    cb.model = model
+
+    model.history_stats = []
+    logs = {'mse': 1}
+    cb.on_epoch_end(1, logs=logs)
+    assert 'lr' in logs
+    assert np.allclose(logs['lr'],  0.01)
+
+    model.history_stats = [{'mse': 1}]
+    logs = {'mse': 10}
+    cb.on_epoch_end(1, logs=logs)
+    assert 'lr' in logs
+    assert np.allclose(logs['lr'],  0.01)
+
+    model.history_stats = [{'mse': 1}, {'mse': 2}]
+    logs = {'mse': 10}
+    cb.on_epoch_end(1, logs=logs)
+    assert 'lr' in logs
+    assert np.allclose(logs['lr'],  0.01 / 2.)
 
 
 def test_learning_rate_scheduler_constant():
@@ -115,7 +163,9 @@ def test_learning_rate_scheduler_manual():
 
 def test_time_budget():
     clock = 0
-    fake_time = lambda: clock
+
+    def fake_time():
+        return clock
     with pytest.raises(BudgetFinishedException):
         TimeBudget(budget_secs=0, time=fake_time).on_epoch_end(epoch=1)
 

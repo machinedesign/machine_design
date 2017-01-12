@@ -128,7 +128,7 @@ def train(params,
         it = batch_iterator(it, batch_size=batch_size, repeat=False, cols=[input_col])
         it = map(lambda d: d[input_col], it)
         return it
-
+    
     fit_transformers(
         transformers,
         transformers_data_generator
@@ -236,7 +236,7 @@ def train(params,
     history_stats = []
     model.history_stats = history_stats
     for epoch in range(max_nb_epochs):
-        logger.info('Epoch {:05d}...'.format(epoch))
+        logger.info('Starting epoch {:05d}...'.format(epoch))
         dt = time.time()
         stats = {}
         callback_trigger(callbacks, 'on_epoch_begin', epoch, logs=stats)
@@ -254,6 +254,7 @@ def train(params,
             stop_training = True
         else:
             stop_training = False
+        logger.info('Finished training epoch {:05d}...'.format(epoch))
         history_stats.append(stats)
         for k, v in stats.items():
             logger.info('{}={:.4f}'.format(k, v))

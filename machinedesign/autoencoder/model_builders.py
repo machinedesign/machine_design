@@ -160,6 +160,8 @@ def rnn(params, input_shape, output_shape):
     rnm1 -> rnn2-> ... -> rnn_n ->
     """
     assert input_shape == output_shape
+    input_shape = (None,) + input_shape[1:]
+    output_shape = input_shape
 
     rnn_type = params['rnn_type']
     nb_hidden_units = params['nb_hidden_units']

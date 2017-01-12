@@ -167,6 +167,7 @@ def loss_sum(y_true, y_pred, terms=[]):
         total += get_loss(loss_def['loss'])(y_true, y_pred) * loss_def['coef']
     return total
 
+
 objectives = {
     'axis_categorical_crossentropy': axis_categorical_crossentropy,
     'feature_space_mean_squared_error': feature_space_mean_squared_error,

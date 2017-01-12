@@ -12,7 +12,6 @@ from .common import callback_trigger
 
 from .utils import mkdir_path
 from .utils import write_csv
-from .utils import print_time
 
 from .objectives import get_loss
 from .data import pipeline_load
@@ -236,14 +235,19 @@ def train(params,
     history_stats = []
     model.history_stats = history_stats
     for epoch in range(max_nb_epochs):
-        logger.info('Epoch {:05d}...'.format(epoch))
-        dt = time.time()
+        logger.info('Starting epoch {:05d}...'.format(epoch))
+        t0 = time.time()
         stats = {}
         callback_trigger(callbacks, 'on_epoch_begin', epoch, logs=stats)
+        t0 = time.time()
         for _ in range(nb_minibatches):
             train_batch = next(train_iterator)
             X, Y = train_batch[input_col], train_batch[output_col]
             model.train_on_batch(X, Y)
+
+        training_time = time.time() - t0
+
+        t0_callbacks = time.time()
         try:
             callback_trigger(callbacks, 'on_epoch_end', epoch, logs=stats)
         except BudgetFinishedException:
@@ -254,11 +258,17 @@ def train(params,
             stop_training = True
         else:
             stop_training = False
+        callback_time = time.time() - t0_callbacks
+        total_time = time.time() - t0
+        logger.info('Finished training epoch {:05d}...'.format(epoch))
         history_stats.append(stats)
         for k, v in stats.items():
             logger.info('{}={:.4f}'.format(k, v))
         write_csv(history_stats, os.path.join(outdir, 'stats.csv'))
-        logger.info('elapsed time : {:.3f}s'.format(time.time() - dt))
+
+        logger.info('Training time : {:.3f}s'.format(training_time))
+        logger.info('Callbacks time : {:.3f}s'.format(callback_time))
+        logger.info('Total elapsed time : {:.3f}s'.format(total_time))
 
         # the following happens
         # when early stopping or budget finished

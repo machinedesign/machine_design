@@ -179,6 +179,7 @@ def fc_upconvolutional(params, input_shape, output_shape):
     check_model_shape_or_exception(model, output_shape)
     return model
 
+
 builders = {
     'fully_connected': fully_connected,
     'convolutional': convolutional,

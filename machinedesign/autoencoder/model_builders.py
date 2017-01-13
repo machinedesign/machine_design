@@ -166,10 +166,11 @@ def rnn(params, input_shape, output_shape):
     rnn_type = params['rnn_type']
     nb_hidden_units = params['nb_hidden_units']
     output_activation = params['output_activation']
+    stateful = params['stateful']
 
     inp = Input(input_shape)
     x = inp
-    x = rnn_stack(x, nb_hidden_units, rnn_type=rnn_type)
+    x = rnn_stack(x, nb_hidden_units, rnn_type=rnn_type, stateful=stateful)
     x = TimeDistributed(Dense(output_shape[1]))(x)
     out = activation_function(output_activation)(x)
     model = Model(input=inp, output=out)

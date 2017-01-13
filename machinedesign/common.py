@@ -223,7 +223,7 @@ def show_model_info(model, print_func=print):
     print_func('Input shape : {}'.format(model.input_shape))
     print_func('Output shape : {}'.format(model.output_shape))
     print_func('Number of parameters : {}'.format(model.count_params()))
-    print_func(model.summary())
+    model.summary()
 
 
 def _get_layers(model):

@@ -47,7 +47,10 @@ from .objectives import objectives
 import pickle
 import logging
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    format='%(asctime)s ## %(message)s',
+    level=logging.DEBUG,
+    datefmt='%m/%d/%Y,%I:%M:%S')
 logger = logging.getLogger(__name__)
 
 Config = namedtuple(
@@ -127,11 +130,12 @@ def train(params,
         it = batch_iterator(it, batch_size=batch_size, repeat=False, cols=[input_col])
         it = map(lambda d: d[input_col], it)
         return it
-    
+
     fit_transformers(
         transformers,
         transformers_data_generator
     )
+    logger.info('Saving transformers into {}'.format(outdir))
     # save transformers
     mkdir_path(outdir)
     with open(os.path.join(outdir, 'transformers.pkl'), 'wb') as fd:
@@ -145,7 +149,9 @@ def train(params,
     # (maybe force it to pass through everything?)
     # So instead we can provide the number of sample explicitly
     # to know how many minibatches we have per epoch
-    nb_train_samples = data['train'].get('nb_samples', get_nb_samples(transformers_data_generator()))
+    logger.debug('Getting number of samples on training data...')
+    nb_train_samples = data['train'].get(
+        'nb_samples', get_nb_samples(transformers_data_generator()))
     nb_minibatches = get_nb_minibatches(nb_train_samples, batch_size)
     logger.info('Number of training examples : {}'.format(nb_train_samples))
     logger.info('Number of training minibatches : {}'.format(nb_minibatches))
@@ -160,6 +166,7 @@ def train(params,
     iterators['train'] = train_data_generator
 
     # Build and compile model
+    logger.debug('Getting input and output shapes...')
     shapes = get_shapes(next(train_data_generator(batch_size=batch_size, repeat=False)))
     model = _build_model(
         name=model_name,
@@ -180,6 +187,7 @@ def train(params,
 
     optimizer = build_optimizer(algo_name, algo_params)
     loss = get_loss(loss_name, objectives=config.objectives)
+    logger.debug('Compiling the model...')
     model.compile(loss=loss, optimizer=optimizer)
 
     show_model_info(model, print_func=logger.info)
@@ -204,13 +212,22 @@ def train(params,
     for metric in metrics:
         metric_func = config.metrics[metric]
         for which in ('train',):
-            compute_func = _build_compute_func(
+            compute_func_ = _build_compute_func(
                 predict=model.predict,
                 data_generator=lambda: iterators[which](batch_size=pred_batch_size, repeat=False),
                 metric=metric_func,
                 input_col=input_col,
                 output_col=output_col,
                 aggregate=np.mean)
+
+            def compute_func():
+                logger.debug('Computing the metric "{}" on "{}"...'.format(metric, which))
+                t0 = time.time()
+                val = compute_func_()
+                delta_t = time.time() - t0
+                logger.debug('Done computing the metric "{}" on "{}" in {:.3f} seconds'.format(
+                    metric, which, delta_t))
+                return val
             callback = RecordEachEpoch(which + '_' + metric, compute_func)
             metric_callbacks.append(callback)
 
@@ -268,7 +285,7 @@ def train(params,
 
         logger.info('Training time : {:.3f}s'.format(training_time))
         logger.info('Callbacks time : {:.3f}s'.format(callback_time))
-        logger.info('Total elapsed time : {:.3f}s'.format(total_time))
+        logger.info('Total elapsed time in the epoch {:05d} : {:.3f}s'.format(epoch, total_time))
 
         # the following happens
         # when early stopping or budget finished
@@ -296,11 +313,12 @@ def _update_history(model, logs):
 def _build_compute_func(predict, data_generator, metric,
                         input_col='X', output_col='y',
                         aggregate=np.mean):
-    
+
     def _get_real_and_pred_batch(data):
         x = data[input_col]
         y = predict(x)
         return x, y
+
     def _get_real_and_pred():
         data = data_generator()
         data = map(_get_real_and_pred_batch, data)

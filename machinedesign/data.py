@@ -77,30 +77,21 @@ operators.update(transform_operators)
 pipeline_load = partial(pipeline_load, operators=operators)
 
 
-def get_nb_samples(pipeline):
+def get_nb_samples(data_iter):
     """
     get nb of samples of a pipeline
 
     Parameters
     ----------
 
-    pipeline : list of dict
+    data_iter : iterator of numpy array like objects or iterators
 
     Returns
     -------
 
     int
     """
-    if len(pipeline) == 0:
-        return 0
-    p = pipeline[0:1]
-    p = pipeline_load(p)
-    if hasattr(p, 'shape'):
-        return p.shape[0]
-    else:
-        p = list(p)
-        return len(p)
-
+    return sum(map(lambda data:len(data), data_iter))
 
 def get_shapes(sample):
     """

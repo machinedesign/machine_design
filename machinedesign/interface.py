@@ -145,7 +145,7 @@ def train(params,
     # (maybe force it to pass through everything?)
     # So instead we can provide the number of sample explicitly
     # to know how many minibatches we have per epoch
-    nb_train_samples = data['train'].get('nb_samples', get_nb_samples(train_pipeline))
+    nb_train_samples = data['train'].get('nb_samples', get_nb_samples(transformers_data_generator()))
     nb_minibatches = get_nb_minibatches(nb_train_samples, batch_size)
     logger.info('Number of training examples : {}'.format(nb_train_samples))
     logger.info('Number of training minibatches : {}'.format(nb_minibatches))
@@ -296,9 +296,15 @@ def _update_history(model, logs):
 def _build_compute_func(predict, data_generator, metric,
                         input_col='X', output_col='y',
                         aggregate=np.mean):
-
+    
+    def _get_real_and_pred_batch(data):
+        x = data[input_col]
+        y = predict(x)
+        return x, y
     def _get_real_and_pred():
-        return map(lambda data: (data[input_col], predict(data[input_col])), data_generator())
+        data = data_generator()
+        data = map(_get_real_and_pred_batch, data)
+        return data
 
     def _compute_func():
         return aggregate(compute_metric(_get_real_and_pred, metric))

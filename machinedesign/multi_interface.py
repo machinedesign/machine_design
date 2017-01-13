@@ -159,7 +159,7 @@ def train(params, model_builders={}, logger=logger, callbacks=[],
         cb.transformers = []
         cb.outdir = outdir
 
-    nb_train_samples = data['train'].get('nb_samples', get_nb_samples(data_train_pipeline))
+    nb_train_samples = data['train'].get('nb_samples', get_nb_samples(data_train_generator(batch_size=batch_size, repeat=False)))
     nb_minibatches = get_nb_minibatches(nb_train_samples, batch_size)
     logger.info('Number of training examples : {}'.format(nb_train_samples))
     logger.info('Number of training minibatches : {}'.format(nb_minibatches))

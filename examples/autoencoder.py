@@ -39,6 +39,19 @@ def main():
                     {"name": "order", "params": {"order": "th"}}
                 ]
             },
+            'valid': {
+                'pipeline': [
+                    {"name": "toy",
+                     "params": {"nb": 512, "w": 16, "h": 16,
+                                "pw": 2, "ph": 2,
+                                "nb_patches": 2, "random_state": 43}},
+                    {"name": "shuffle", "params": {"random_state": 44}},
+                    {"name": "normalize_shape", "params": {}},
+                    {"name": "divide_by", "params": {"value": 255}},
+                    {"name": "order", "params": {"order": "th"}}
+                ]
+            },
+
             'transformers': [
             ]
         },

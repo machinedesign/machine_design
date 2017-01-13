@@ -118,7 +118,11 @@ def train(params,
 
     # build and fit transformers
     train_pipeline = data['train']['pipeline']
-
+    valid = data.get('valid')
+    if valid:
+        valid_pipeline = valid['pipeline']
+    else:
+        valid_pipeline = None
     logger.info('Fitting transformers on training data...')
 
     transformers = make_transformers_pipeline(
@@ -157,17 +161,19 @@ def train(params,
     logger.info('Number of training minibatches : {}'.format(nb_minibatches))
     apply_transformers = partial(transform_one, transformer_list=transformers)
 
-    def train_data_generator(batch_size=batch_size, repeat=False):
-        it = pipeline_load(train_pipeline)
+    def data_generator(batch_size=batch_size, repeat=False, pipeline=train_pipeline):
+        it = pipeline_load(pipeline)
         it = batch_iterator(it, batch_size=batch_size, repeat=repeat, cols=[input_col, output_col])
         it = map(partial(dict_apply, fn=apply_transformers, cols=[input_col]), it)
         it = map(partial(dict_apply, fn=floatX, cols=[input_col, output_col]), it)
         return it
-    iterators['train'] = train_data_generator
-
+    iterators['train'] = partial(data_generator, pipeline=train_pipeline)
+    if valid:
+        iterators['valid'] = partial(data_generator, pipeline=valid_pipeline)
     # Build and compile model
     logger.debug('Getting input and output shapes...')
-    shapes = get_shapes(next(train_data_generator(batch_size=batch_size, repeat=False)))
+    shapes = get_shapes(next(data_generator(batch_size=batch_size,
+                                            repeat=False, pipeline=train_pipeline)))
     model = _build_model(
         name=model_name,
         params=model_params,
@@ -211,24 +217,18 @@ def train(params,
     metric_callbacks = []
     for metric in metrics:
         metric_func = config.metrics[metric]
-        for which in ('train',):
+        for which in iterators.keys():
             compute_func_ = _build_compute_func(
                 predict=model.predict,
-                data_generator=lambda: iterators[which](batch_size=pred_batch_size, repeat=False),
+                data_generator=lambda which=which: iterators[which](
+                    batch_size=pred_batch_size, repeat=False),
                 metric=metric_func,
                 input_col=input_col,
                 output_col=output_col,
                 aggregate=np.mean)
-
-            def compute_func():
-                logger.debug('Computing the metric "{}" on "{}"...'.format(metric, which))
-                t0 = time.time()
-                val = compute_func_()
-                delta_t = time.time() - t0
-                logger.debug('Done computing the metric "{}" on "{}" in {:.3f} seconds'.format(
-                    metric, which, delta_t))
-                return val
-            callback = RecordEachEpoch(which + '_' + metric, compute_func)
+            callback = RecordEachEpoch(
+                which + '_' + metric,
+                partial(verbose_compute_func, which=which, metric=metric, func=compute_func_, logger=logger))
             metric_callbacks.append(callback)
 
     time_budget = TimeBudget(budget_secs=budget_secs)
@@ -247,7 +247,7 @@ def train(params,
     # Training loop
     callback_trigger(callbacks, 'on_train_begin')
 
-    train_iterator = train_data_generator(batch_size=batch_size, repeat=True)
+    train_iterator = data_generator(batch_size=batch_size, repeat=True, pipeline=train_pipeline)
 
     history_stats = []
     model.history_stats = history_stats
@@ -308,6 +308,16 @@ def _update_history(model, logs):
         if k not in model.history.history:
             model.history.history[k] = []
         model.history.history[k].append(v)
+
+
+def verbose_compute_func(which, metric, func, logger):
+    logger.debug('Computing the metric "{}" on "{}"...'.format(metric, which))
+    t0 = time.time()
+    val = func()
+    delta_t = time.time() - t0
+    logger.debug('Done computing the metric "{}" on "{}" in {:.3f} seconds, the value is : {}'.format(
+        metric, which, delta_t, val))
+    return val
 
 
 def _build_compute_func(predict, data_generator, metric,

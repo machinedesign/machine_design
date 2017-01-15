@@ -227,8 +227,12 @@ def train(params,
                 input_col=input_col,
                 output_col=output_col,
                 aggregate=np.mean)
+            if isinstance(metric, dict):
+                metric_name = metric['name']
+            else:
+                metric_name = metric
             callback = RecordEachEpoch(
-                which + '_' + metric,
+                which + '_' + metric_name,
                 partial(verbose_compute_func, which=which, metric=metric, func=compute_func_, logger=logger))
             metric_callbacks.append(callback)
 

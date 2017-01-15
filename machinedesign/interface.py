@@ -35,6 +35,7 @@ from .transformers import transform_one
 from .transformers import fit_transformers
 
 from .metrics import compute_metric
+from .metrics import get_metric
 
 # elements of Config
 from .model_builders import builders as model_builders
@@ -216,7 +217,7 @@ def train(params,
 
     metric_callbacks = []
     for metric in metrics:
-        metric_func = config.metrics[metric]
+        metric_func = get_metric(metric, metrics=config.metrics)
         for which in iterators.keys():
             compute_func_ = _build_compute_func(
                 predict=model.predict,
@@ -226,8 +227,12 @@ def train(params,
                 input_col=input_col,
                 output_col=output_col,
                 aggregate=np.mean)
+            if isinstance(metric, dict):
+                metric_name = metric['name']
+            else:
+                metric_name = metric
             callback = RecordEachEpoch(
-                which + '_' + metric,
+                which + '_' + metric_name,
                 partial(verbose_compute_func, which=which, metric=metric, func=compute_func_, logger=logger))
             metric_callbacks.append(callback)
 

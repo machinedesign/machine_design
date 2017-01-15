@@ -16,6 +16,7 @@ from ..common import check_family_or_exception
 from ..common import custom_objects
 
 from ..utils import mkdir_path
+from ..utils import get_axis
 
 from ..viz import reshape_to_images
 from ..viz import grid_of_images_default
@@ -87,6 +88,11 @@ def _run_method(method, model):
 
 
 def _iterative_refinement(params, model):
+    """
+    take params of iterative refinement (see below), a keras model
+    and returns a numpy array of shape :
+        (nb_samples, nb_iter,) + model.input_shape[1:]
+    """
     # get params
     batch_size = params['batch_size']
     N = params['nb_samples']
@@ -107,6 +113,8 @@ def _iterative_refinement(params, model):
     # in their input_shape, for instance in RNN models the number
     # of timesteps could be not specified. In that case, it's the user
     # that should provide the number of timesteps.
+    # setting model_input_shape avoids the error "TypeError: an integer is required"
+    # when there is a None in the input_shape of the model.
     model_input_shape = params.get('model_input_shape', model.input_shape[1:])
 
     # Initialize the reconstructions
@@ -168,7 +176,7 @@ def _apply_noise(name, params, X, rng=np.random):
         # on that selected axis.
         # with proba noise_pr, switch the category at random, e.g [1 0 0 0] becomes [0 1 0 0]
         # with proba 1 - noise_pr, leave the category as it is, e.g [1 0 0 0] stays [1 0 0 0]
-        axis = params['axis']
+        axis = get_axis(params['axis'])
         noise_pr = params['proba']
         mask = rng.uniform(size=X.shape)
         mask = (mask == mask.max(axis=axis, keepdims=True))
@@ -207,8 +215,32 @@ def _apply_binarization(name, params, X, rng=np.random):
         X = floatX(X)
         return X
     elif name == 'onehot':
-        axis = params['axis']
+        # the max value along an axis gets replaced by 1, the others
+        # to zero
+        axis = get_axis(params['axis'])
         return (X == X.max(axis=axis, keepdims=True))
+    elif name == 'multinomial':
+        # sample from multinomial distribution by using an axis
+        # as categories.
+        axis = get_axis(params['axis'])
+        # put the selected axis at the end, that is,
+        # if axis==2 and shape of X is (nb_examples, nb_features, nb_timesteps)
+        # then it would be transformed to (nb_examples, nb_timesteps, nb_features)
+        shape = list(range(len(X.shape)))
+        shape[axis], shape[-1] = shape[-1], shape[axis]
+        shape = tuple(shape)
+        X = X.transpose(shape)
+        # flatten it to (nb_examples * nb_timestems, nb_features)
+        orig_shape = X.shape
+        X = X.reshape((-1, X.shape[-1]))
+        # sample from each example and onehotit
+        for x in X:
+            cat = rng.choice(np.arange(x.shape[0]), p=x)
+            x[:] = 0
+            x[cat] = 1
+        X = X.reshape(orig_shape)
+        X = X.transpose(shape)
+        return X
     elif name == 'none':
         return X
     else:

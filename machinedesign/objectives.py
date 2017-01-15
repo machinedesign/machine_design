@@ -208,7 +208,7 @@ def get_loss(loss, objectives=objectives):
     """
     if isinstance(loss, dict):
         name = loss['name']
-        params = loss['params']
+        params = loss.get('params', {})
         func = objectives[name]
         orig_name = func.__name__
         func = partial(func, **params)

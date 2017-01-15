@@ -217,12 +217,21 @@ def train(params,
 
     metric_callbacks = []
     for metric in metrics:
+        # metric can either be a str and in that case, the metric will be computed for
+        # all data splits (e.g train, valid) defined in data.
+        # or it can be a dict, and in that case it should have the keys:
+        # - "name" : name of the metric
+        # - "params"(optional) : the params of the metric
+        # - "data" (optional): data where to compute the metric
+        # (if not given, it will be computed for alll data splits)
         metric_func = get_metric(metric, metrics=config.metrics)
         if isinstance(metric, dict):
             metric_name = metric['name']
+            data = metric.get('data', iterators.keys())
         else:
             metric_name = metric
-        for which in iterators.keys():
+            data = iterators.keys()
+        for which in data:
             compute_func_ = _build_compute_func(
                 predict=model.predict,
                 data_generator=lambda which=which: iterators[which](
@@ -289,7 +298,7 @@ def train(params,
         logger.info('Finished training epoch {:05d}...'.format(epoch))
         history_stats.append(stats)
         for k, v in stats.items():
-            logger.info('{}={:.4f}'.format(k, v))
+            logger.info('{}={:.8f}'.format(k, v))
         write_csv(history_stats, os.path.join(outdir, 'stats.csv'))
 
         logger.info('Training time : {:.3f}s'.format(training_time))

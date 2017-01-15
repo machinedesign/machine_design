@@ -46,7 +46,7 @@ metrics = {
 def get_metric(metric, metrics=metrics):
     if isinstance(metric, dict):
         name = metric['name']
-        params = metric['params']
+        params = metric.get('params', {})
         func = metrics[name]
         orig_name = func.__name__
         func = partial(func, **params)

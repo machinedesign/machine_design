@@ -37,37 +37,9 @@ def test_get_nb_minibatches():
     assert get_nb_minibatches(25, 10) == 3
 
 
-def test_batch_iterator():
-    """
-    it = BatchIterator(lambda: [], cols=['X', 'y'])
-    assert list(it.flow(batch_size=10)) == []
-
-    xvals = np.arange(25).astype(np.float32)
-    yvals = xvals ** 2
-
-    data = [{'X': xvals[i], 'y': yvals[i]} for i in range(25)]
-
-    it = BatchIterator(lambda: data, cols=['X', 'y'])
-    res = it.flow(batch_size=10, repeat=False)
-    res = list(res)
-    assert len(res) == 3
-    assert len(res[0]['X']) == 10
-    assert len(res[0]['y']) == 10
-    assert len(res[1]['X']) == 10
-    assert len(res[1]['y']) == 10
-    assert len(res[2]['X']) == 5
-    assert len(res[2]['y']) == 5
-    assert np.all(res[0]['X'] == xvals[0:10])
-    assert np.all(res[0]['y'] == yvals[0:10])
-    assert np.all(res[1]['X'] == xvals[10:20])
-    assert np.all(res[1]['y'] == yvals[10:20])
-    assert np.all(res[2]['X'] == xvals[20:])
-    assert np.all(res[2]['y'] == yvals[20:])
-    """
-
-
 def test_minibatcher():
-    func = lambda x: x**2
+    def func(x):
+        return x**2
     func = minibatcher(func, batch_size=10)
 
     # test empty input

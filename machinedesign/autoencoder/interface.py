@@ -80,7 +80,7 @@ def _run_method(method, model):
     params = method['params']
     save_folder = method['save_folder']
     func = get_method(name)
-    X = func(params, model, save_folder)
+    X = func(params, model)
     mkdir_path(save_folder)
     filename = os.path.join(save_folder, 'generated.npz')
     np.savez_compressed(filename, full=X, generated=X[:, -1])

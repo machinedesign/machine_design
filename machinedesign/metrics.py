@@ -2,6 +2,7 @@
 This module contains a list of metrics that are
 common to models.
 """
+from functools import partial
 import numpy as np
 
 
@@ -40,6 +41,23 @@ metrics = {
     'binary_crossentropy': binary_crossentropy,
     'categorical_crossentropy': categorical_crossentropy
 }
+
+
+def get_metric(metric, metrics=metrics):
+    if isinstance(metric, dict):
+        name = metric['name']
+        params = metric['params']
+        func = metrics[name]
+        orig_name = func.__name__
+        func = partial(func, **params)
+        func.__name__ = orig_name
+        # keras requests and uses the __name__ of the func (for serialization), this
+        # is why I do this.
+        return func
+    # assume metric is a str
+    else:
+        func = metrics[metric]
+        return func
 
 
 def compute_metric(get_true_and_pred, metric):

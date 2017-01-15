@@ -218,6 +218,10 @@ def train(params,
     metric_callbacks = []
     for metric in metrics:
         metric_func = get_metric(metric, metrics=config.metrics)
+        if isinstance(metric, dict):
+            metric_name = metric['name']
+        else:
+            metric_name = metric
         for which in iterators.keys():
             compute_func_ = _build_compute_func(
                 predict=model.predict,

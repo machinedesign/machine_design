@@ -119,11 +119,6 @@ def train(params,
 
     # build and fit transformers
     train_pipeline = data['train']['pipeline']
-    valid = data.get('valid')
-    if valid:
-        valid_pipeline = valid['pipeline']
-    else:
-        valid_pipeline = None
     logger.info('Fitting transformers on training data...')
 
     transformers = make_transformers_pipeline(
@@ -169,8 +164,12 @@ def train(params,
         it = map(partial(dict_apply, fn=floatX, cols=[input_col, output_col]), it)
         return it
     iterators['train'] = partial(data_generator, pipeline=train_pipeline)
-    if valid:
-        iterators['valid'] = partial(data_generator, pipeline=valid_pipeline)
+    # add other data splits than train
+    for name, params in data.items():
+        if name in ('train', 'transformers'):
+            continue
+        pipeline = params['pipeline']
+        iterators[name] = partial(data_generator, pipeline=pipeline)
     # Build and compile model
     logger.debug('Getting input and output shapes...')
     shapes = get_shapes(next(data_generator(batch_size=batch_size,

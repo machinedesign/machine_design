@@ -233,7 +233,7 @@ def train(params,
                 metric_name = metric
             callback = RecordEachEpoch(
                 which + '_' + metric_name,
-                partial(verbose_compute_func, which=which, metric=metric, func=compute_func_, logger=logger))
+                partial(verbose_compute_func, which=which, metric=metric_name, func=compute_func_, logger=logger))
             metric_callbacks.append(callback)
 
     time_budget = TimeBudget(budget_secs=budget_secs)

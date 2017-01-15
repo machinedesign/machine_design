@@ -325,9 +325,9 @@ def _build_compute_func(predict, data_generator, metric,
                         aggregate=np.mean):
 
     def _get_real_and_pred_batch(data):
-        x = data[input_col]
-        y = predict(x)
-        return x, y
+        yreal = data[output_col]
+        ypred = predict(data[input_col])
+        return yreal, ypred
 
     def _get_real_and_pred():
         data = data_generator()

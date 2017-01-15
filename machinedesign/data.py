@@ -14,7 +14,6 @@ from datakit.pipeline import pipeline_load
 from datakit.image import operators as image_operators
 from datakit.loaders import operators as load_operators
 from datakit.helpers import minibatch_from_chunks
-from datakit.helpers import expand_dict
 
 from keras.models import Model
 
@@ -91,7 +90,8 @@ def get_nb_samples(data_iter):
 
     int
     """
-    return sum(map(lambda data:len(data), data_iter))
+    return sum(map(lambda data: len(data), data_iter))
+
 
 def get_shapes(sample):
     """

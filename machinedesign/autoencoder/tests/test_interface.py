@@ -5,7 +5,6 @@ import numpy as np
 from machinedesign.common import WrongModelFamilyException
 from machinedesign.autoencoder.interface import train
 from machinedesign.autoencoder.interface import _apply_noise
-from machinedesign.autoencoder.interface import _apply_binarization
 
 params_test = {
     'family': 'autoencoder',

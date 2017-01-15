@@ -80,10 +80,13 @@ def _run_method(method, model):
     params = method['params']
     save_folder = method['save_folder']
     func = get_method(name)
-    return func(params, model, save_folder)
+    X = func(params, model, save_folder)
+    mkdir_path(save_folder)
+    filename = os.path.join(save_folder, 'generated.npz')
+    np.savez_compressed(filename, full=X, generated=X[:, -1])
 
 
-def _iterative_refinement(params, model, folder):
+def _iterative_refinement(params, model):
     # get params
     batch_size = params['batch_size']
     N = params['nb_samples']
@@ -99,12 +102,18 @@ def _iterative_refinement(params, model, folder):
 
     stop_if_unchanged = params['stop_if_unchanged']
     seed = params['seed']
+    # I could have just used model.input_shape directly without asking
+    # for this (optional) parameter, however some models have None
+    # in their input_shape, for instance in RNN models the number
+    # of timesteps could be not specified. In that case, it's the user
+    # that should provide the number of timesteps.
+    model_input_shape = params.get('model_input_shape', model.input_shape[1:])
 
     # Initialize the reconstructions
     transformers = model.transformers
     # shape is shape of inputs before
     # applying the transformers (if there are transformers)
-    shape = transformers[0].input_shape_ if len(transformers) else model.input_shape[1:]
+    shape = transformers[0].input_shape_ if len(transformers) else model_input_shape
     shape = tuple(shape)
     # if there are transformers, we will need the input dtype
     # it can be provided by the first transformer.
@@ -118,7 +127,7 @@ def _iterative_refinement(params, model, folder):
     X = np.empty((N, nb_iter + 1,) + shape, dtype=dtype)
     rng = np.random.RandomState(seed)
 
-    s = rng.uniform(size=(N,) + model.input_shape[1:])
+    s = rng.uniform(size=(N,) + model_input_shape)
     X[:, 0] = inverse_transform_one(s, transformers)
     # Build apply function
     reconstruct = minibatcher(model.predict, batch_size=batch_size)
@@ -139,9 +148,7 @@ def _iterative_refinement(params, model, folder):
             X = X[:, 0:i + 1]
             break
         previous_score = score
-    mkdir_path(folder)
-    filename = os.path.join(folder, 'generated.npz')
-    np.savez_compressed(filename, full=X, generated=X[:, -1])
+    return X
 
 
 def _apply_noise(name, params, X, rng=np.random):

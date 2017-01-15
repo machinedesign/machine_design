@@ -4,6 +4,7 @@ from machinedesign.data import get_shapes
 from machinedesign.data import get_nb_minibatches
 from machinedesign.data import minibatcher
 from machinedesign.data import iterate_minibatches
+from machinedesign.data import pipeline_load
 
 toy_pipeline = [
     {"name": "toy", "params": {"nb": 50, "w": 8, "h": 8,
@@ -16,7 +17,7 @@ toy_pipeline = [
 
 
 def test_get_nb_samples():
-    assert get_nb_samples(toy_pipeline) == 50
+    assert get_nb_samples(pipeline_load(toy_pipeline)) == 50
     assert get_nb_samples([]) == 0
 
 

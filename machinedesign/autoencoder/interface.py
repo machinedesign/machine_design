@@ -14,6 +14,7 @@ from ..interface import train as train_basic
 
 from ..common import check_family_or_exception
 from ..common import custom_objects
+from ..common import get_layers
 
 from ..utils import mkdir_path
 from ..utils import get_axis
@@ -43,13 +44,14 @@ default_config = default_config._replace(model_builders=model_builders)
 def train(params, config=default_config, custom_callbacks=[], logger=logger):
     check_family_or_exception(params['family'], 'autoencoder')
     # Callbacks
+    callbacks = params['report']['callbacks']
     report_callbacks = []
-    if report_callbacks:
-        if 'image_reconstruction' in report_callbacks:
+    if callbacks:
+        if 'image_reconstruction' in callbacks:
             cb = DoEachEpoch(_report_image_reconstruction)
             cb.outdir = params['report']['outdir']
             report_callbacks.append(cb)
-        if 'image_features' in report_callbacks:
+        if 'image_features' in callbacks:
             cb = DoEachEpoch(_report_image_features)
             cb.outdir = params['report']['outdir']
             report_callbacks.append(cb)
@@ -284,7 +286,7 @@ def _report_image_features(cb):
     if model.input_shape[1] not in (1, 3):
         return
 
-    for layer in model.layers:
+    for layer in get_layers(model):
         if hasattr(layer, 'W'):
             W = layer.W.get_value()
             try:

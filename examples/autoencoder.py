@@ -12,46 +12,37 @@ def main():
         'family': 'autoencoder',
         'input_col': 'X',
         'output_col': 'X',
-        'model': {
-            'name': 'fully_connected',
-            'params': {
-                'nb_hidden_units': [10],
-                'activations': ['relu'],
-                'output_activation': 'sigmoid',
-                'input_noise': {
-                    'name': 'gaussian',
+        'model': [
+            {
+                'name': 'noise',
+                'params': {
+                    'type': 'gaussian',
                     'params': {
-                        'std': 1
+                        'std': 0.1
                     }
-                },
+                }
+            },
+            {
+                'name': 'fully_connected',
+                'params': {
+                        'nb_hidden_units': [256],
+                        'activations': ['relu'],
+                        'output_activation': 'sigmoid',
+                }
             }
-        },
+        ],
         'data': {
             'train': {
                 'pipeline': [
                     {"name": "toy",
-                     "params": {"nb": 128, "w": 16, "h": 16,
-                                "pw": 2, "ph": 2,
-                                "nb_patches": 2, "random_state": 42}},
-                    {"name": "shuffle", "params": {"random_state": 42}},
-                    {"name": "normalize_shape", "params": {}},
-                    {"name": "divide_by", "params": {"value": 255}},
-                    {"name": "order", "params": {"order": "th"}}
-                ]
-            },
-            'valid': {
-                'pipeline': [
-                    {"name": "toy",
                      "params": {"nb": 512, "w": 16, "h": 16,
-                                "pw": 2, "ph": 2,
-                                "nb_patches": 2, "random_state": 43}},
-                    {"name": "shuffle", "params": {"random_state": 44}},
+                                "pw": 4, "ph": 4,
+                                "nb_patches": 2, "random_state": None}},
                     {"name": "normalize_shape", "params": {}},
                     {"name": "divide_by", "params": {"value": 255}},
                     {"name": "order", "params": {"order": "th"}}
                 ]
             },
-
             'transformers': [
             ]
         },
@@ -80,7 +71,7 @@ def main():
                     'patience': 5
                 }
             },
-            'max_nb_epochs': 20,
+            'max_nb_epochs': 200,
             'batch_size': 128,
             'pred_batch_size': 128,
             'loss': 'binary_crossentropy',
@@ -106,8 +97,8 @@ def main():
                     }
                 },
                 'noise': {
-                    'name': 'none',
-                    'params': {}
+                    'name': 'gaussian',
+                    'params': {'std': 0.1}
                 },
                 'stop_if_unchanged': True,
                 'seed': 42

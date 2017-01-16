@@ -6,9 +6,13 @@ from functools import partial
 from six.moves import map
 from collections import namedtuple
 
+from keras.layers import Input
+from keras.models import Model
+
 from .common import build_optimizer
 from .common import show_model_info
 from .common import callback_trigger
+from .common import get_layers
 
 from .utils import mkdir_path
 from .utils import write_csv
@@ -85,8 +89,7 @@ def train(params,
     with the same interface.
     """
     # Get relevant variables from params
-    model_name = params['model']['name']
-    model_params = params['model']['params']
+    model_spec = params['model']
     data = params['data']
     report = params['report']
     outdir = report['outdir']
@@ -175,8 +178,7 @@ def train(params,
     shapes = get_shapes(next(data_generator(batch_size=batch_size,
                                             repeat=False, pipeline=train_pipeline)))
     model = _build_model(
-        name=model_name,
-        params=model_params,
+        model=model_spec,
         input_shape=shapes[input_col],
         output_shape=shapes[output_col],
         builders=config.model_builders)
@@ -188,7 +190,7 @@ def train(params,
     # used in the loss needs uses_learning_phase and it's false, then it
     # throws this missinginputerror, so I force uses_learning_phase to
     # True.
-    for lay in model.layers:
+    for lay in get_layers(model):
         lay.uses_learning_phase = True
 
     optimizer = build_optimizer(algo_name, algo_params)
@@ -265,8 +267,6 @@ def train(params,
     # Training loop
     callback_trigger(callbacks, 'on_train_begin')
 
-    train_iterator = data_generator(batch_size=batch_size, repeat=True, pipeline=train_pipeline)
-
     history_stats = []
     model.history_stats = history_stats
     for epoch in range(max_nb_epochs):
@@ -275,6 +275,8 @@ def train(params,
         stats = {}
         callback_trigger(callbacks, 'on_epoch_begin', epoch, logs=stats)
         t0 = time.time()
+        train_iterator = data_generator(
+            batch_size=batch_size, repeat=False, pipeline=train_pipeline)
         for _ in range(nb_minibatches):
             train_batch = next(train_iterator)
             X, Y = train_batch[input_col], train_batch[output_col]
@@ -357,7 +359,25 @@ def _build_compute_func(predict, data_generator, metric,
     return _compute_func
 
 
-def _build_model(name, params, input_shape, output_shape, builders={}):
-    model_builder = builders[name]
-    model = model_builder(params, input_shape, output_shape)  # keras model
+def _build_model(model, input_shape, output_shape, builders={}):
+    """
+    model composition
+    """
+    if isinstance(model, dict):
+        builders_spec = [model]
+    elif isinstance(model, list):
+        builders_spec = model
+    else:
+        raise Exception('Expecting model to be either a dict or a list, got : {}'.format(model))
+    inp = Input(input_shape)
+    x = inp
+    for spec in builders_spec:
+        name = spec['name']
+        params = spec['params']
+        model_builder = builders[name]
+        model = model_builder(params, input_shape, output_shape)  # keras model
+        x = model(x)
+        input_shape = model.output_shape
+    out = x
+    model = Model(input=inp, output=out)
     return model

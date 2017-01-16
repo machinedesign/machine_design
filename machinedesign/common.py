@@ -272,3 +272,11 @@ def callback_trigger(callbacks, event_name, *args, **kwargs):
     """
     for cb in callbacks:
         getattr(cb, event_name)(*args, **kwargs)
+
+
+def get_layers(model):
+    for lay in model.layers:
+        if isinstance(lay, Model):
+            yield from get_layers(lay)
+        else:
+            yield lay

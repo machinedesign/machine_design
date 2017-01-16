@@ -1,4 +1,6 @@
 import numpy as np
+from six.moves import map
+
 from machinedesign.data import get_nb_samples
 from machinedesign.data import get_shapes
 from machinedesign.data import get_nb_minibatches
@@ -17,7 +19,9 @@ toy_pipeline = [
 
 
 def test_get_nb_samples():
-    assert get_nb_samples(pipeline_load(toy_pipeline)) == 50
+    data = pipeline_load(toy_pipeline)
+    data = map(lambda d: d['X'], data)
+    assert get_nb_samples(data) == 50
     assert get_nb_samples([]) == 0
 
 

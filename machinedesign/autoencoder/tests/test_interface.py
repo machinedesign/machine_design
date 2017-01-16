@@ -16,12 +16,6 @@ params_test = {
             'nb_hidden_units': [10],
             'activations': ['relu'],
             'output_activation': 'sigmoid',
-            'input_noise': {
-                'name': 'gaussian',
-                'params': {
-                    'std': 1
-                }
-            },
         }
     },
     'data': {

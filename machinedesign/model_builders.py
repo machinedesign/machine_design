@@ -24,27 +24,34 @@ from .layers import UpConv2D
 
 from .common import activation_function
 from .common import fully_connected_layers
-from .common import noise
+from .common import noise as _noise
 from .common import conv2d_layers
 from .common import check_model_shape_or_exception
+
+
+def noise(params, input_shape, output_shape):
+    noise_name = params['type']
+    noise_params = params['params']
+    apply_noise = partial(_noise, name=noise_name, params=noise_params)
+    inp = Input(input_shape)
+    out = apply_noise(inp)
+    model = Model(input=inp, output=out)
+    check_model_shape_or_exception(model, output_shape)
+    return model
 
 
 def fully_connected(params, input_shape, output_shape):
     """
     stack of fully connected layers
 
-    input -> noise(input) -> fc1 -> fc2 -> ... -> output
+    input -> fc1 -> fc2 -> ... -> output
     params
     ------
     nb_hidden_units : list of int
         it is not including the final output layer
     activations : list of str
-    input_noise : dict with name and params keys
-        name can be : 'gaussian'
     output_activation : str
     """
-    noise_name = params['input_noise']['name']
-    noise_params = params['input_noise']['params']
     output_shape_flat = np.prod(output_shape)
     output_activation = params['output_activation']
 
@@ -52,14 +59,13 @@ def fully_connected(params, input_shape, output_shape):
     inp = x
     if len(input_shape) > 1:
         x = Flatten()(x)
-    apply_noise = partial(noise, name=noise_name, params=noise_params)
-    x = apply_noise(x)
     x = _fully_connected_stack(x, params)
     x = Dense(output_shape_flat, init='glorot_uniform')(x)
     x = Reshape(output_shape)(x)
     x = activation_function(output_activation)(x)
     out = x
     model = Model(input=inp, output=out)
+    check_model_shape_or_exception(model, output_shape)
     return model
 
 
@@ -183,5 +189,6 @@ def fc_upconvolutional(params, input_shape, output_shape):
 builders = {
     'fully_connected': fully_connected,
     'convolutional': convolutional,
-    'fc_upconvolutional': fc_upconvolutional
+    'fc_upconvolutional': fc_upconvolutional,
+    'noise': noise,
 }

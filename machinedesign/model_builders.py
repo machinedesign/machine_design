@@ -190,5 +190,5 @@ builders = {
     'fully_connected': fully_connected,
     'convolutional': convolutional,
     'fc_upconvolutional': fc_upconvolutional,
-    'noise': noise
+    'noise': noise,
 }

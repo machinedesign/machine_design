@@ -12,25 +12,14 @@ def main():
         'family': 'autoencoder',
         'input_col': 'X',
         'output_col': 'X',
-        'model': [
-            {
-                'name': 'noise',
-                'params': {
-                    'type': 'gaussian',
-                    'params': {
-                        'std': 0.1
-                    }
-                }
-            },
-            {
-                'name': 'fully_connected',
-                'params': {
-                        'nb_hidden_units': [256],
-                        'activations': ['relu'],
-                        'output_activation': 'sigmoid',
-                }
+        'model': {
+            'name': 'fully_connected',
+            'params': {
+                'nb_hidden_units': [256],
+                'activations': ['relu'],
+                'output_activation': 'sigmoid',
             }
-        ],
+        },
         'data': {
             'train': {
                 'pipeline': [

@@ -6,9 +6,6 @@ from functools import partial
 from six.moves import map
 from collections import namedtuple
 
-from keras.layers import Input
-from keras.models import Model
-
 from .common import build_optimizer
 from .common import show_model_info
 from .common import callback_trigger
@@ -89,7 +86,8 @@ def train(params,
     with the same interface.
     """
     # Get relevant variables from params
-    model_spec = params['model']
+    model_name = params['model']['name']
+    model_params = params['model']['params']
     data = params['data']
     report = params['report']
     outdir = report['outdir']
@@ -178,7 +176,8 @@ def train(params,
     shapes = get_shapes(next(data_generator(batch_size=batch_size,
                                             repeat=False, pipeline=train_pipeline)))
     model = _build_model(
-        model=model_spec,
+        model_name,
+        model_params,
         input_shape=shapes[input_col],
         output_shape=shapes[output_col],
         builders=config.model_builders)
@@ -359,25 +358,7 @@ def _build_compute_func(predict, data_generator, metric,
     return _compute_func
 
 
-def _build_model(model, input_shape, output_shape, builders={}):
-    """
-    model composition
-    """
-    if isinstance(model, dict):
-        builders_spec = [model]
-    elif isinstance(model, list):
-        builders_spec = model
-    else:
-        raise Exception('Expecting model to be either a dict or a list, got : {}'.format(model))
-    inp = Input(input_shape)
-    x = inp
-    for spec in builders_spec:
-        name = spec['name']
-        params = spec['params']
-        model_builder = builders[name]
-        model = model_builder(params, input_shape, output_shape)  # keras model
-        x = model(x)
-        input_shape = model.output_shape
-    out = x
-    model = Model(input=inp, output=out)
+def _build_model(name, params, input_shape, output_shape, builders={}):
+    model_builder = builders[name]
+    model = model_builder(params, input_shape, output_shape)  # keras model
     return model

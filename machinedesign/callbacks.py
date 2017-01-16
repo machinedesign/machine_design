@@ -342,19 +342,23 @@ class RecordEachEpoch(Callback):
         name of the stat to record
     compute_fn: callable
         called as `compute_fn()` each epoch to get a value.
+    each : int
+        record each 'each' epochs
     """
 
-    def __init__(self, name, compute_fn, on_logs=True):
+    def __init__(self, name, compute_fn, each=1, on_logs=True):
         self.name = name
         self.compute_fn = compute_fn
         self.values = []
+        self.each = each
         self.on_logs = on_logs
 
-    def on_epoch_end(self, batch, logs={}):
-        val = self.compute_fn()
-        if self.on_logs:
-            logs[self.name] = val
-        self.values.append(val)
+    def on_epoch_end(self, epoch, logs={}):
+        if (epoch % self.each) == 0:
+            val = self.compute_fn()
+            if self.on_logs:
+                logs[self.name] = val
+            self.values.append(val)
 
 
 class DoEachEpoch(Callback):

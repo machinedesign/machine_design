@@ -222,14 +222,17 @@ def train(params,
         # - "name" : name of the metric
         # - "params"(optional) : the params of the metric
         # - "data" (optional): data where to compute the metric
+        # - "each" (optional) : compute the metric each 'each' epochs
         # (if not given, it will be computed for alll data splits)
         metric_func = get_metric(metric, metrics=config.metrics)
         if isinstance(metric, dict):
             metric_name = metric['name']
             data = metric.get('data', iterators.keys())
+            each = metric.get('each', 1)
         else:
             metric_name = metric
             data = iterators.keys()
+            each = 1
         for which in data:
             compute_func_ = _build_compute_func(
                 predict=model.predict,
@@ -245,7 +248,9 @@ def train(params,
                 metric_name = metric
             callback = RecordEachEpoch(
                 which + '_' + metric_name,
-                partial(verbose_compute_func, which=which, metric=metric_name, func=compute_func_, logger=logger))
+                partial(verbose_compute_func, which=which, metric=metric_name,
+                        func=compute_func_, logger=logger),
+                each=each)
             metric_callbacks.append(callback)
 
     time_budget = TimeBudget(budget_secs=budget_secs)

@@ -240,6 +240,38 @@ class Normalize(Layer):
         return dict(list(base_config.items()) + list(config.items()))
 
 
+class CategoricalNoise(Layer):
+
+    def __init__(self, p, seed=None, axis=2, **kwargs):
+        self.p = p
+        self.seed = seed
+        self.axis = axis
+        if 0. < self.p < 1.:
+            self.uses_learning_phase = True
+        super(CategoricalNoise, self).__init__(**kwargs)
+
+    def call(self, x, mask=None):
+        if 0. < self.p < 1.:
+            import theano.tensor as T
+            # TODO make it compatible with tensorflow
+            axis = get_axis(self.axis)
+            noise_pr = self.p
+            noise = K.random_uniform(x.shape, 0, 1)
+            noise = (K.equal(noise, noise.max(axis=axis, keepdims=True)))
+            y = K.cast(x.max(axis=axis, keepdims=True), K.floatx())
+            u = K.random_uniform(y.shape, 0, 1) <= (1 - noise_pr)
+            u = T.addbroadcast(u, axis)
+            xn = x * u + noise * (1 - u)
+            return K.in_train_phase(xn, x)
+        else:
+            return x
+
+        def get_config(self):
+            config = {'p': self.p, 'axis': self.axis}
+            base_config = super(CategoricalNoise, self).get_config()
+            return dict(list(base_config.items()) + list(config.items()))
+
+
 layers = {
     'ksparse': ksparse,
     'winner_take_all_spatial': winner_take_all_spatial,
@@ -247,5 +279,6 @@ layers = {
     'axis_softmax': axis_softmax,
     'UpConv2D': UpConv2D,
     'leaky_relu': LeakyReLU,
-    'Normalize': Normalize
+    'Normalize': Normalize,
+    'CategoricalNoise': CategoricalNoise
 }

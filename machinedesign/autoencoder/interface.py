@@ -173,7 +173,8 @@ def _apply_noise(name, params, X, rng=np.random):
     elif name == 'gaussian':
         std = params['std']
         return X + np.random.normal(loc=0, scale=std, size=X.shape)
-    elif name == 'choice':
+    elif name == 'categorical':
+        # WARNING : behaves like categoricalNoise in the module machinedesign.layers
         # applies to some axis and assumes one hot representation
         # on that selected axis.
         # with proba noise_pr, switch the category at random, e.g [1 0 0 0] becomes [0 1 0 0]

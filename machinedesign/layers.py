@@ -251,7 +251,7 @@ class CategoricalNoise(Layer):
         super(CategoricalNoise, self).__init__(**kwargs)
 
     def call(self, x, mask=None):
-        if 0. < self.p < 1.:
+        if 0. < self.proba < 1.:
             import theano.tensor as T
             # TODO make it compatible with tensorflow
             axis = get_axis(self.axis)

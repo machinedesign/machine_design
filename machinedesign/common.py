@@ -17,6 +17,7 @@ from keras import optimizers
 
 from .objectives import objectives
 from .layers import layers
+from .layers import CategoricalNoise
 
 custom_objects = {}
 custom_objects.update(objectives)
@@ -60,6 +61,8 @@ def noise(x, name, params):
     if name == 'gaussian':
         std = params['std']
         return GaussianNoise(std)(x)
+    elif name == 'categorical':
+        return CategoricalNoise(**params)(x)
     elif name == 'none':
         return x
     else:

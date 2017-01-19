@@ -242,7 +242,7 @@ class Normalize(Layer):
 
 class CategoricalNoise(Layer):
 
-    def __init__(self, proba, seed=None, axis=2, **kwargs):
+    def __init__(self, proba=0.5, seed=None, axis=2, **kwargs):
         self.proba = proba
         self.seed = seed
         self.axis = axis

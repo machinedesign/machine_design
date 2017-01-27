@@ -157,7 +157,7 @@ def rnn_rnn_autoencoder(params, input_shape, output_shape):
 
 def rnn(params, input_shape, output_shape):
     """
-    rnm1 -> rnn2-> ... -> rnn_n ->
+    rnm1 -> rnn2-> ... -> rnn_n 
     """
     assert input_shape == output_shape
     input_shape = (None,) + input_shape[1:]
@@ -166,10 +166,10 @@ def rnn(params, input_shape, output_shape):
     rnn_type = params['rnn_type']
     nb_hidden_units = params['nb_hidden_units']
     output_activation = params['output_activation']
-
+    dropout = params['dropout']
     inp = Input(input_shape)
     x = inp
-    x = rnn_stack(x, nb_hidden_units, rnn_type=rnn_type)
+    x = rnn_stack(x, nb_hidden_units, rnn_type=rnn_type, dropout=dropout)
     x = TimeDistributed(Dense(output_shape[1]))(x)
     out = activation_function(output_activation)(x)
     model = Model(input=inp, output=out)

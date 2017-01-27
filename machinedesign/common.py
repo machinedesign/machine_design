@@ -173,11 +173,12 @@ def conv1d_layers(x, nb_filters, filter_sizes, activations,
 rnn_classes = {'GRU': GRU, 'LSTM': LSTM, 'RNN': SimpleRNN}
 
 
-def rnn_stack(x, nb_hidden_units, rnn_type='GRU', return_sequences=True, stateful=False):
+def rnn_stack(x, nb_hidden_units, rnn_type='GRU', return_sequences=True, stateful=False, dropout=None):
     rnn_class = rnn_classes[rnn_type]
     for i, nb_units in enumerate(nb_hidden_units):
         r = True if i < len(nb_hidden_units) - 1 else return_sequences
-        x = rnn_class(nb_units, return_sequences=r, stateful=stateful)(x)
+        pr = dropout[i] if dropout else 0
+        x = rnn_class(nb_units, return_sequences=r, stateful=stateful, dropout_U=pr, dropout_W=pr)(x)
     return x
 
 

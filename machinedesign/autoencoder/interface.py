@@ -88,79 +88,6 @@ def _run_method(method, model):
     filename = os.path.join(save_folder, 'generated.npz')
     np.savez_compressed(filename, full=X, generated=X[:, -1])
 
-
-def _iterative_refinement(params, model):
-    """
-    take params of iterative refinement (see below), a keras model
-    and returns a numpy array of shape :
-        (nb_samples, nb_iter,) + model.input_shape[1:]
-    """
-    # get params
-    batch_size = params['batch_size']
-    N = params['nb_samples']
-    nb_iter = params['nb_iter']
-
-    binarize = params['binarize']
-    binarize_name = binarize['name']
-    binarize_params = binarize['params']
-
-    noise = params['noise']
-    noise_name = noise['name']
-    noise_params = noise['params']
-
-    stop_if_unchanged = params['stop_if_unchanged']
-    seed = params['seed']
-    # I could have just used model.input_shape directly without asking
-    # for this (optional) parameter, however some models have None
-    # in their input_shape, for instance in RNN models the number
-    # of timesteps could be not specified. In that case, it's the user
-    # that should provide the number of timesteps.
-    # setting model_input_shape avoids the error "TypeError: an integer is required"
-    # when there is a None in the input_shape of the model.
-    model_input_shape = params.get('model_input_shape', model.input_shape[1:])
-
-    # Initialize the reconstructions
-    transformers = model.transformers
-    # shape is shape of inputs before
-    # applying the transformers (if there are transformers)
-    shape = transformers[0].input_shape_ if len(transformers) else model_input_shape
-    shape = tuple(shape)
-    # if there are transformers, we will need the input dtype
-    # it can be provided by the first transformer.
-    # it is needed because we have to initialize the input
-    # here, so we also need to know the type of the data.
-    # by default, the type is float32.
-    if len(transformers) and hasattr(transformers[0], 'input_dtype_'):
-        dtype = transformers[0].input_dtype_
-    else:
-        dtype = 'float32'
-    X = np.empty((N, nb_iter + 1,) + shape, dtype=dtype)
-    rng = np.random.RandomState(seed)
-
-    s = rng.uniform(size=(N,) + model_input_shape)
-    X[:, 0] = inverse_transform_one(s, transformers)
-    # Build apply function
-    reconstruct = minibatcher(model.predict, batch_size=batch_size)
-
-    # reconstruction loop
-    previous_score = None
-    for i in (range(1, nb_iter + 1)):
-        logger.info('Iteration {}'.format(i))
-        s = _apply_noise(noise_name, noise_params, s, rng=rng)
-        s_orig = s
-        s = reconstruct(s)
-        s = _apply_binarization(binarize_name, binarize_params, s, rng=rng)
-        X[:, i] = inverse_transform_one(s, transformers)
-        score = float(np.abs(s - s_orig).mean())
-        logger.info('Mean absolute error : {:.5f}'.format(score))
-        if (previous_score and score == previous_score and stop_if_unchanged):
-            logger.info('Stopping at iteration {}/{} because score did not change'.format(i, nb_iter))
-            X = X[:, 0:i + 1]
-            break
-        previous_score = score
-    return X
-
-
 def _apply_noise(name, params, X, rng=np.random):
     if name == 'masking':
         # with proba noise_pr, set X value to zero, e.g
@@ -250,8 +177,79 @@ def _apply_binarization(name, params, X, rng=np.random):
         raise ValueError('Unknown binarization method  : {}'.format(name))
 
 
+def iterative_refinement(params, model, apply_noise=_apply_noise, apply_binarization=_apply_binarization):
+    """
+    take params of iterative refinement (see below), a keras model
+    and returns a numpy array of shape :
+        (nb_samples, nb_iter,) + model.input_shape[1:]
+    """
+    # get params
+    batch_size = params['batch_size']
+    N = params['nb_samples']
+    nb_iter = params['nb_iter']
+
+    binarize = params['binarize']
+    binarize_name = binarize['name']
+    binarize_params = binarize['params']
+
+    noise = params['noise']
+    noise_name = noise['name']
+    noise_params = noise['params']
+
+    stop_if_unchanged = params['stop_if_unchanged']
+    seed = params['seed']
+    # I could have just used model.input_shape directly without asking
+    # for this (optional) parameter, however some models have None
+    # in their input_shape, for instance in RNN models the number
+    # of timesteps could be not specified. In that case, it's the user
+    # that should provide the number of timesteps.
+    # setting model_input_shape avoids the error "TypeError: an integer is required"
+    # when there is a None in the input_shape of the model.
+    model_input_shape = params.get('model_input_shape', model.input_shape[1:])
+
+    # Initialize the reconstructions
+    transformers = model.transformers
+    # shape is shape of inputs before
+    # applying the transformers (if there are transformers)
+    shape = transformers[0].input_shape_ if len(transformers) else model_input_shape
+    shape = tuple(shape)
+    # if there are transformers, we will need the input dtype
+    # it can be provided by the first transformer.
+    # it is needed because we have to initialize the input
+    # here, so we also need to know the type of the data.
+    # by default, the type is float32.
+    if len(transformers) and hasattr(transformers[0], 'input_dtype_'):
+        dtype = transformers[0].input_dtype_
+    else:
+        dtype = 'float32'
+    X = np.empty((N, nb_iter + 1,) + shape, dtype=dtype)
+    rng = np.random.RandomState(seed)
+
+    s = rng.uniform(size=(N,) + model_input_shape)
+    X[:, 0] = inverse_transform_one(s, transformers)
+    # Build apply function
+    reconstruct = minibatcher(model.predict, batch_size=batch_size)
+
+    # reconstruction loop
+    previous_score = None
+    for i in (range(1, nb_iter + 1)):
+        logger.info('Iteration {}'.format(i))
+        s = apply_noise(noise_name, noise_params, s, rng=rng)
+        s_orig = s
+        s = reconstruct(s)
+        s = apply_binarization(binarize_name, binarize_params, s, rng=rng)
+        X[:, i] = inverse_transform_one(s, transformers)
+        score = float(np.abs(s - s_orig).mean())
+        logger.info('Mean absolute error : {:.5f}'.format(score))
+        if (previous_score and score == previous_score and stop_if_unchanged):
+            logger.info('Stopping at iteration {}/{} because score did not change'.format(i, nb_iter))
+            X = X[:, 0:i + 1]
+            break
+        previous_score = score
+    return X
+
 def get_method(name):
-    return {'iterative_refinement': _iterative_refinement}[name]
+    return {'iterative_refinement': iterative_refinement}[name]
 
 
 def _report_image_reconstruction(cb):

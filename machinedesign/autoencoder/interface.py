@@ -236,6 +236,7 @@ def iterative_refinement(params, model, apply_noise=_apply_noise, apply_binariza
         logger.info('Iteration {}'.format(i))
         s = apply_noise(noise_name, noise_params, s, rng=rng)
         s_orig = s
+        s = floatX(s)
         s = reconstruct(s)
         s = apply_binarization(binarize_name, binarize_params, s, rng=rng)
         X[:, i] = inverse_transform_one(s, transformers)

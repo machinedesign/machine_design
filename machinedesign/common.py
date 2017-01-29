@@ -2,6 +2,7 @@
 This module contains some common functions used in models
 """
 from __future__ import division
+from __future__ import print_function
 
 from keras.layers import Activation
 from keras.layers import Dense
@@ -281,6 +282,7 @@ def callback_trigger(callbacks, event_name, *args, **kwargs):
 def get_layers(model):
     for lay in model.layers:
         if isinstance(lay, Model):
-            yield from get_layers(lay)
+            for lay_ in get_layers(lay):
+                yield lay_
         else:
             yield lay

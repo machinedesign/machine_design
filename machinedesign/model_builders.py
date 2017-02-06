@@ -21,6 +21,7 @@ from keras.models import Model
 
 from .layers import Convolution2D
 from .layers import UpConv2D
+from .layers import CategoricalMasking
 
 from .common import activation_function
 from .common import fully_connected_layers
@@ -38,7 +39,6 @@ def noise(params, input_shape, output_shape):
     model = Model(input=inp, output=out)
     check_model_shape_or_exception(model, output_shape)
     return model
-
 
 def fully_connected(params, input_shape, output_shape):
     """

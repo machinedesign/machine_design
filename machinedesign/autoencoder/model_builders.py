@@ -7,6 +7,7 @@ from keras.layers import Flatten
 
 from ..layers import Convolution2D
 from ..layers import UpConv2D
+from ..layers import CategoricalMasking
 
 from ..common import rnn_stack
 from ..common import activation_function
@@ -130,16 +131,16 @@ def convolutional_rnn_autoencoder(params, input_shape, output_shape):
 def rnn_rnn_autoencoder(params, input_shape, output_shape):
     assert input_shape == output_shape
     max_length = input_shape[0]
-
     rnn_type = params['rnn_type']
     encode_nb_hidden_units = params['encode_nb_hidden_units']
     latent_nb_hidden_units = params['latent_nb_hidden_units']
     latent_activations = params['latent_activations']
     decode_nb_hidden_units = params['decode_nb_hidden_units']
     output_activation = params['output_activation']
-
+    
     inp = Input(input_shape)
     x = inp
+    x = CategoricalMasking(mask_char=0)(x)
     x = rnn_stack(
         x,
         encode_nb_hidden_units,

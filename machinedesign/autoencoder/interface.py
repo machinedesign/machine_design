@@ -108,11 +108,20 @@ def _apply_noise(name, params, X, rng=np.random):
         # with proba 1 - noise_pr, leave the category as it is, e.g [1 0 0 0] stays [1 0 0 0]
         axis = get_axis(params['axis'])
         noise_pr = params['proba']
+        mask_char = params.get('mask_char')
+
         mask = rng.uniform(size=X.shape)
         mask = (mask == mask.max(axis=axis, keepdims=True))
         shape = list(X.shape)
         shape[axis] = 1
         u = rng.uniform(size=shape) <= (1 - noise_pr)
+        if mask_char is not None:
+            x = X.argmax(axis=axis)
+            shape = list(x.shape)
+            shape = shape[0:axis] + [1] + shape[axis:]
+            shape = tuple(shape)
+            x = x.reshape(shape)
+            u = u | (x == mask_char)
         X = X * u + mask * (1 - u)
         X = floatX(X)
         return X

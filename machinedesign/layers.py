@@ -242,10 +242,11 @@ class Normalize(Layer):
 
 class CategoricalNoise(Layer):
 
-    def __init__(self, proba=0.5, seed=None, axis=2, **kwargs):
+    def __init__(self, proba=0.5, seed=None, axis=2, mask_char=None, **kwargs):
         self.proba = proba
         self.seed = seed
         self.axis = axis
+        self.mask_char = mask_char
         if 0. < self.proba < 1.:
             self.uses_learning_phase = True
         super(CategoricalNoise, self).__init__(**kwargs)
@@ -260,17 +261,38 @@ class CategoricalNoise(Layer):
             noise = (K.equal(noise, noise.max(axis=axis, keepdims=True)))
             y = K.cast(x.max(axis=axis, keepdims=True), K.floatx())
             u = K.random_uniform(y.shape, 0, 1) <= (1 - noise_pr)
+            if self.mask_char is not None:
+                m = K.equal(x.argmax(axis=axis, keepdims=True), self.mask_char)
+                u = u | m
             u = T.addbroadcast(u, axis)
             xn = x * u + noise * (1 - u)
             return K.in_train_phase(xn, x)
         else:
-            return x
+            return K.in_train_phase(x, x)
 
         def get_config(self):
-            config = {'proba': self.proba, 'axis': self.axis}
+            config = {'proba': self.proba, 'axis': self.axis, 'mask_char': self.mask_char}
             base_config = super(CategoricalNoise, self).get_config()
             return dict(list(base_config.items()) + list(config.items()))
 
+
+class CategoricalMasking(Layer):
+    def __init__(self, mask_char=0., **kwargs):
+        self.supports_masking = True
+        self.mask_char = mask_char
+        super(CategoricalMasking, self).__init__(**kwargs)
+
+    def compute_mask(self, x, input_mask=None):
+        return K.not_equal(x.argmax(axis=-1, keepdims=True), self.mask_char)
+    
+    def call(self, x, mask=None):
+        boolean_mask = self.compute_mask(x)
+        return x * K.cast(boolean_mask, K.floatx())
+
+    def get_config(self):
+        config = {'mask_char': self.mask_char}
+        base_config = super(CategoricalMasking, self).get_config()
+        return dict(list(base_config.items()) + list(config.items()))
 
 layers = {
     'ksparse': ksparse,
@@ -280,5 +302,6 @@ layers = {
     'UpConv2D': UpConv2D,
     'leaky_relu': LeakyReLU,
     'Normalize': Normalize,
-    'CategoricalNoise': CategoricalNoise
+    'CategoricalNoise': CategoricalNoise,
+    'CategoricalMasking': CategoricalMasking
 }

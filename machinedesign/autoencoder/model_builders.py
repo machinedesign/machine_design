@@ -4,6 +4,7 @@ from keras.models import Model
 from keras.layers import Dense
 from keras.layers import TimeDistributed
 from keras.layers import Flatten
+from keras.layers import merge
 
 from ..layers import Convolution2D
 from ..layers import UpConv2D
@@ -138,9 +139,14 @@ def rnn_rnn_autoencoder(params, input_shape, output_shape):
     decode_nb_hidden_units = params['decode_nb_hidden_units']
     output_activation = params['output_activation']
     
+    decoder_include_input = params.get('decoder_include_input', False)
+
     inp = Input(input_shape)
     x = inp
     x = CategoricalMasking(mask_char=0)(x)
+    inp_masked = x
+    if decoder_include_input:
+        x = CategoricalMasking(mask_char=2)(x)
     x = rnn_stack(
         x,
         encode_nb_hidden_units,
@@ -148,9 +154,12 @@ def rnn_rnn_autoencoder(params, input_shape, output_shape):
         return_sequences=False)
     x = fully_connected_layers(x, latent_nb_hidden_units, latent_activations)
     x = RepeatVector(max_length)(x)
+    if decoder_include_input:
+        x = merge((inp_masked, x), mode='concat', concat_axis=-1, name='concat')
     x = rnn_stack(x, decode_nb_hidden_units, rnn_type=rnn_type)
     x = TimeDistributed(Dense(output_shape[1]))(x)
-    out = activation_function(output_activation)(x)
+    x = activation_function(output_activation)(x)
+    out = x
     model = Model(input=inp, output=out)
     check_model_shape_or_exception(model, output_shape)
     return model

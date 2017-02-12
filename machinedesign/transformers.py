@@ -7,6 +7,7 @@ transformers allows to save these parameters and re-use them when
 loading the model for the generation phase for instance.
 The Transformer instances follow a scikit-learn like API.
 """
+import pickle
 import numpy as np
 from sklearn.cluster import MiniBatchKMeans
 
@@ -175,6 +176,26 @@ class ColorDiscretizer:
         return X  # (nb_examples, nb_channels, h, w)
 
 
+class FileLoader:
+
+    def __init__(self, filename, pos=0):
+        self.filename = filename
+        self.pos = pos
+        self.transformer_ = None
+
+    def _load(self):
+        if self._transformer is None:
+            with open(filename, 'rb') as fd:
+                self.transformer_ = picke.load(fd)
+
+    def transform(self, X):
+        self._load()
+        return self.transformer_[self.pos].transform(X)
+
+    def inverse_transform(self, X):
+        self._load()
+        self.transformer_[self.pos].inverse_transform(X)
+
 def onehot(X, D=10):
     """
     Converts a numpy array of integers to a one-hot
@@ -207,7 +228,8 @@ def onehot(X, D=10):
 
 transformers = {
     'Standardize': Standardize,
-    'ColorDiscretizer': ColorDiscretizer
+    'ColorDiscretizer': ColorDiscretizer,
+    'FileLoader': FileLoader
 }
 
 

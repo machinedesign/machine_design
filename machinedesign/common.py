@@ -3,6 +3,7 @@ This module contains some common functions used in models
 """
 from __future__ import division
 from __future__ import print_function
+from functools import partial
 
 from keras.layers import Activation
 from keras.layers import Dense
@@ -13,12 +14,14 @@ from keras.layers import GaussianNoise
 from keras.layers import LSTM
 from keras.layers import GRU
 from keras.layers import SimpleRNN
+from keras.layers import Bidirectional
 from keras.engine.training import Model
 from keras import optimizers
 
 from .objectives import objectives
 from .layers import layers
 from .layers import CategoricalNoise
+from .layers import WordDropout
 
 custom_objects = {}
 custom_objects.update(objectives)
@@ -64,6 +67,8 @@ def noise(x, name, params):
         return GaussianNoise(std)(x)
     elif name == 'categorical':
         return CategoricalNoise(**params)(x)
+    elif name == 'word_dropout':
+        return WordDropout(**params)(x)
     elif name == 'none':
         return x
     else:
@@ -171,8 +176,19 @@ def conv1d_layers(x, nb_filters, filter_sizes, activations,
     return x
 
 
-rnn_classes = {'GRU': GRU, 'LSTM': LSTM, 'RNN': SimpleRNN}
+def _bidirectional(rnn_class):
+    def f(*args, **kwargs):
+        return Bidirectional(rnn_class(*args, **kwargs))
+    return f
 
+rnn_classes = {
+    'GRU': GRU, 
+    'LSTM': LSTM,
+    'RNN': SimpleRNN,
+    'BidirectionalLSTM': _bidirectional(LSTM),
+    'BidirectionalGRU': _bidirectional(GRU),
+    'BidirectionalRNN': _bidirectional(SimpleRNN)
+}
 
 def rnn_stack(x, nb_hidden_units, rnn_type='GRU', return_sequences=True, stateful=False, dropout=None):
     rnn_class = rnn_classes[rnn_type]
@@ -181,7 +197,6 @@ def rnn_stack(x, nb_hidden_units, rnn_type='GRU', return_sequences=True, statefu
         pr = dropout[i] if dropout else 0
         x = rnn_class(nb_units, return_sequences=r, stateful=stateful, dropout_U=pr, dropout_W=pr)(x)
     return x
-
 
 def build_optimizer(algo_name, algo_params):
     """

@@ -5,7 +5,10 @@ import pickle
 
 from skimage.io import imsave
 
+import keras.backend as K
 from keras.models import load_model
+from keras.models import Model
+from keras.layers import Input
 
 from ..data import floatX
 from ..data import minibatcher
@@ -31,6 +34,8 @@ from .model_builders import builders as model_builders_autoencoder
 
 from ..interface import default_config
 
+from ..layers import CategoricalNoise
+from ..layers import WordDropout
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -107,29 +112,29 @@ def _apply_noise(name, params, X, rng=np.random):
         # with proba noise_pr, switch the category at random, e.g [1 0 0 0] becomes [0 1 0 0]
         # with proba 1 - noise_pr, leave the category as it is, e.g [1 0 0 0] stays [1 0 0 0]
         axis = get_axis(params['axis'])
-        noise_pr = params['proba']
+        proba = params['proba']
         mask_char = params.get('mask_char')
-
-        mask = rng.uniform(size=X.shape)
-        mask = (mask == mask.max(axis=axis, keepdims=True))
-        shape = list(X.shape)
-        shape[axis] = 1
-        u = rng.uniform(size=shape) <= (1 - noise_pr)
-        if mask_char is not None:
-            x = X.argmax(axis=axis)
-            shape = list(x.shape)
-            shape = shape[0:axis] + [1] + shape[axis:]
-            shape = tuple(shape)
-            x = x.reshape(shape)
-            u = u | (x == mask_char)
-        X = X * u + mask * (1 - u)
+        pred = _get_predict(
+            CategoricalNoise(axis=axis, proba=proba, mask_char=mask_char), 
+            X.shape[1:], 
+            learning_phase=1)
+        X = pred(X)
+        X = floatX(X)
+        return X
+    elif name == 'word_dropout':
+        char = params['char']
+        proba = params['proba']
+        pred = _get_predict(
+            WordDropout(proba=proba, char=char), 
+            X.shape[1:],
+            learning_phase=1)
+        X = pred(X)
         X = floatX(X)
         return X
     elif name == 'none':
         return X
     else:
         raise ValueError('Unknown noise method : {}'.format(name))
-
 
 def _apply_binarization(name, params, X, rng=np.random):
     if name == 'sample_bernoulli':
@@ -310,9 +315,18 @@ def _report_image_features(cb):
         else:
             pass
 
-
 def _get_input_reconstruction_grid(X, X_rec, grid_of_images=grid_of_images_default):
     X = grid_of_images(X)
     X_rec = grid_of_images(X_rec)
     img = horiz_merge(X, X_rec)
     return img
+
+def _get_predict(layer, input_shape, learning_phase=0):
+    inp = Input(input_shape)
+    y = layer(inp)
+    model = Model(input=inp, output=y)
+    func = K.function([model.layers[0].input, K.learning_phase()], [model.layers[1].output])
+    def apply_func(x):
+        result, = func([x, learning_phase])
+        return result
+    return apply_func

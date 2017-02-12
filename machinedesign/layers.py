@@ -149,6 +149,10 @@ class axis_softmax(Layer):
     def __init__(self, axis=1, **kwargs):
         super(axis_softmax, self).__init__(**kwargs)
         self.axis = get_axis(axis)
+        #avoid errors like :
+        # ValueError: Layer axis_softmax_1 does not support masking, but was passed an input_mask: All{2}.0
+        # when using RNNs with masking
+        self.supports_masking = True
 
     def call(self, X, mask=None):
         e_X = K.exp(X - X.max(axis=self.axis, keepdims=True))
@@ -239,6 +243,56 @@ class Normalize(Layer):
         base_config = super(Normalize, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
 
+class CategoricalMasking(Layer):
+    def __init__(self, mask_char=0., **kwargs):
+        self.supports_masking = True
+        self.mask_char = mask_char
+        super(CategoricalMasking, self).__init__(**kwargs)
+
+    def compute_mask(self, x, input_mask=None):
+        return K.not_equal(x.argmax(axis=-1, keepdims=True), self.mask_char)
+    
+    def call(self, x, mask=None):
+        boolean_mask = self.compute_mask(x)
+        return x * K.cast(boolean_mask, K.floatx())
+
+    def get_config(self):
+        config = {'mask_char': self.mask_char}
+        base_config = super(CategoricalMasking, self).get_config()
+        return dict(list(base_config.items()) + list(config.items()))
+
+class WordDropout(Layer):
+
+    def __init__(self, proba=0.5, seed=None, char=0, **kwargs):
+        self.proba = proba
+        self.seed = seed
+        self.char = char
+        if 0. < self.proba < 1.:
+            self.uses_learning_phase = True
+        super(WordDropout, self).__init__(**kwargs)
+
+    def call(self, x, mask=None):
+        if 0. < self.proba < 1.:
+            import theano.tensor as T
+            # TODO make it compatible with tensorflow
+            char = self.char
+            axis = 2
+            noise_pr = self.proba
+            noise = T.zeros(x.shape)
+            noise = T.set_subtensor(noise[:, :, char], 1)
+            u = K.random_uniform((x.shape[0], x.shape[1], 1), 0, 1) <= (1 - noise_pr)
+            m = K.equal(x.argmax(axis=axis, keepdims=True), char)
+            u = u | m
+            u = T.addbroadcast(u, axis)
+            xn = x * u + noise * (1 - u)
+            return K.in_train_phase(xn, x)
+        else:
+            return K.in_train_phase(x, x)
+
+        def get_config(self):
+            config = {'proba': self.proba}
+            base_config = super(WordDropout, self).get_config()
+            return dict(list(base_config.items()) + list(config.items()))
 
 class CategoricalNoise(Layer):
 
@@ -275,25 +329,6 @@ class CategoricalNoise(Layer):
             base_config = super(CategoricalNoise, self).get_config()
             return dict(list(base_config.items()) + list(config.items()))
 
-
-class CategoricalMasking(Layer):
-    def __init__(self, mask_char=0., **kwargs):
-        self.supports_masking = True
-        self.mask_char = mask_char
-        super(CategoricalMasking, self).__init__(**kwargs)
-
-    def compute_mask(self, x, input_mask=None):
-        return K.not_equal(x.argmax(axis=-1, keepdims=True), self.mask_char)
-    
-    def call(self, x, mask=None):
-        boolean_mask = self.compute_mask(x)
-        return x * K.cast(boolean_mask, K.floatx())
-
-    def get_config(self):
-        config = {'mask_char': self.mask_char}
-        base_config = super(CategoricalMasking, self).get_config()
-        return dict(list(base_config.items()) + list(config.items()))
-
 layers = {
     'ksparse': ksparse,
     'winner_take_all_spatial': winner_take_all_spatial,
@@ -303,5 +338,6 @@ layers = {
     'leaky_relu': LeakyReLU,
     'Normalize': Normalize,
     'CategoricalNoise': CategoricalNoise,
-    'CategoricalMasking': CategoricalMasking
+    'WordDropout': WordDropout,
+    'CategoricalMasking': CategoricalMasking,
 }

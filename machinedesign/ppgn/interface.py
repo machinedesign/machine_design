@@ -21,7 +21,7 @@ def train(params):
     pass
 
 
-def generate(params):
+def generate(params, custom_objects=custom_objects):
     nb_samples = params['nb_samples']
     nb_iter = params['nb_iter']
     folder = params['folder']

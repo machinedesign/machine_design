@@ -15,6 +15,7 @@ from keras.layers import LSTM
 from keras.layers import GRU
 from keras.layers import SimpleRNN
 from keras.layers import Bidirectional
+from keras.layers import Dropout
 from keras.engine.training import Model
 from keras import optimizers
 
@@ -22,6 +23,7 @@ from .objectives import objectives
 from .layers import layers
 from .layers import CategoricalNoise
 from .layers import WordDropout
+from .layers import Normalize
 
 custom_objects = {}
 custom_objects.update(objectives)
@@ -65,6 +67,11 @@ def noise(x, name, params):
     if name == 'gaussian':
         std = params['std']
         return GaussianNoise(std)(x)
+    elif name == 'zero_masking':
+        proba = params['proba']
+        x = Dropout(proba)(x)
+        x = Normalize(bias=0, scale=proba)(x)
+        return x
     elif name == 'categorical':
         return CategoricalNoise(**params)(x)
     elif name == 'word_dropout':

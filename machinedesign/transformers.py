@@ -182,11 +182,14 @@ class FileLoader:
         self.filename = filename
         self.pos = pos
         self.transformer_ = None
-
+    
+    def partial_fit(self, X):
+        pass
+ 
     def _load(self):
-        if self._transformer is None:
-            with open(filename, 'rb') as fd:
-                self.transformer_ = picke.load(fd)
+        if self.transformer_ is None:
+            with open(self.filename, 'rb') as fd:
+                self.transformer_ = pickle.load(fd)
 
     def transform(self, X):
         self._load()

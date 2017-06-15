@@ -21,7 +21,6 @@ from keras.models import Model
 
 from .layers import Convolution2D
 from .layers import UpConv2D
-from .layers import CategoricalMasking
 
 from .common import activation_function
 from .common import fully_connected_layers
@@ -36,9 +35,10 @@ def noise(params, input_shape, output_shape):
     apply_noise = partial(_noise, name=noise_name, params=noise_params)
     inp = Input(input_shape)
     out = apply_noise(inp)
-    model = Model(input=inp, output=out)
+    model = Model(inputs=inp, outputs=out)
     check_model_shape_or_exception(model, output_shape)
     return model
+
 
 def fully_connected(params, input_shape, output_shape):
     """
@@ -60,11 +60,11 @@ def fully_connected(params, input_shape, output_shape):
     if len(input_shape) > 1:
         x = Flatten()(x)
     x = _fully_connected_stack(x, params)
-    x = Dense(output_shape_flat, init='glorot_uniform')(x)
+    x = Dense(output_shape_flat, kernel_initializer='glorot_uniform')(x)
     x = Reshape(output_shape)(x)
     x = activation_function(output_activation)(x)
     out = x
-    model = Model(input=inp, output=out)
+    model = Model(inputs=inp, outputs=out)
     check_model_shape_or_exception(model, output_shape)
     return model
 
@@ -106,7 +106,7 @@ def convolutional(params, input_shape, output_shape):
     out = x
     if len(output_shape) == 1:
         out = GlobalAveragePooling2D()(out)
-    model = Model(input=inp, output=out)
+    model = Model(inputs=inp, outputs=out)
     check_model_shape_or_exception(model, output_shape)
     return model
 
@@ -170,7 +170,7 @@ def fc_upconvolutional(params, input_shape, output_shape):
     x = _fully_connected_stack(x, params['fully_connected'])
     x = Reshape(reshape)(x)
     x = _upconvolutional_stack(x, params['upconvolutional'])
-    shape = Model(input=inp, output=x).output_shape[1:]
+    shape = Model(inputs=inp, outputs=x).output_shape[1:]
     remaining = shape[1] - output_shape[1] + 1
     x = conv2d_layers(
         x,
@@ -181,7 +181,7 @@ def fc_upconvolutional(params, input_shape, output_shape):
         border_mode='valid',
         stride=1)
     out = x
-    model = Model(input=inp, output=out)
+    model = Model(inputs=inp, outputs=out)
     check_model_shape_or_exception(model, output_shape)
     return model
 

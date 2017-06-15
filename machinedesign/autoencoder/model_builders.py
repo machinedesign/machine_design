@@ -94,7 +94,7 @@ def convolutional_bottleneck(params, input_shape, output_shape):
         conv_layer=UpConv2D)
 
     out = x
-    model = Model(input=inp, output=out)
+    model = Model(inputs=inp, outputs=out)
     check_model_shape_or_exception(model, output_shape)
     return model
 
@@ -124,7 +124,7 @@ def convolutional_rnn_autoencoder(params, input_shape, output_shape):
     x = rnn_stack(x, decode_nb_hidden_units, rnn_type=rnn_type)
     x = TimeDistributed(Dense(output_shape[1]))(x)
     out = activation_function(output_activation)(x)
-    model = Model(input=inp, output=out)
+    model = Model(inputs=inp, outputs=out)
     check_model_shape_or_exception(model, output_shape)
     return model
 
@@ -138,7 +138,7 @@ def rnn_rnn_autoencoder(params, input_shape, output_shape):
     latent_activations = params['latent_activations']
     decode_nb_hidden_units = params['decode_nb_hidden_units']
     output_activation = params['output_activation']
-    
+
     decoder_include_input = params.get('decoder_include_input', False)
 
     inp = Input(input_shape)
@@ -160,14 +160,14 @@ def rnn_rnn_autoencoder(params, input_shape, output_shape):
     x = TimeDistributed(Dense(output_shape[1]))(x)
     x = activation_function(output_activation)(x)
     out = x
-    model = Model(input=inp, output=out)
+    model = Model(inputs=inp, outputs=out)
     check_model_shape_or_exception(model, output_shape)
     return model
 
 
 def rnn(params, input_shape, output_shape):
     """
-    rnm1 -> rnn2-> ... -> rnn_n 
+    rnm1 -> rnn2-> ... -> rnn_n
     """
     assert input_shape == output_shape
     input_shape = (None,) + input_shape[1:]
@@ -182,7 +182,7 @@ def rnn(params, input_shape, output_shape):
     x = rnn_stack(x, nb_hidden_units, rnn_type=rnn_type, dropout=dropout)
     x = TimeDistributed(Dense(output_shape[1]))(x)
     out = activation_function(output_activation)(x)
-    model = Model(input=inp, output=out)
+    model = Model(inputs=inp, outputs=out)
     check_model_shape_or_exception(model, output_shape)
     return model
 

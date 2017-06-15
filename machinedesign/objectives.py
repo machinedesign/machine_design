@@ -9,7 +9,7 @@ import warnings
 from functools import partial
 
 from keras import backend as K
-from keras import objectives as keras_objectives
+from keras import losses as keras_objectives
 from keras.models import load_model
 from keras.models import Model
 
@@ -64,7 +64,7 @@ def feature_space_mean_squared_error(y_true, y_pred, model_filename=None, layer=
     if layer not in layer_names:
         raise ValueError(
             'layer {} does not exist, available layers are : {}'.format(layer, layer_names))
-    model_layer = Model(input=model.layers[0].input, output=model.get_layer(layer).output)
+    model_layer = Model(inputs=model.layers[0].input, outputs=model.get_layer(layer).output)
     model_layer.trainable = False
     return mean_squared_error(model_layer(y_true), model_layer(y_pred)).mean()
 

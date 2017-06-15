@@ -93,8 +93,8 @@ class winner_take_all_spatial(Layer):
 
 
 def _winner_take_all_spatial_one_active(X):
-    mask = (_equals(X, K.max(X, axis=(2, 3), keepdims=True))) * 1
-    return X * mask
+    mask = K.cast(_equals(X, K.max(X, axis=(2, 3), keepdims=True)), K.floatx()).reshape(X.shape)
+    return mask * X
 
 
 class winner_take_all_channel(Layer):
@@ -149,7 +149,7 @@ class axis_softmax(Layer):
     def __init__(self, axis=1, **kwargs):
         super(axis_softmax, self).__init__(**kwargs)
         self.axis = get_axis(axis)
-        #avoid errors like :
+        # avoid errors like :
         # ValueError: Layer axis_softmax_1 does not support masking, but was passed an input_mask: All{2}.0
         # when using RNNs with masking
         self.supports_masking = True
@@ -177,8 +177,8 @@ class UpConv2D(Convolution2D):
         self._check_stride()
         N, c, h, w = input_shape
         if self.border_mode == 'same':
-            h = h * self.subsample[0]
-            w = w * self.subsample[1]
+            h = h * self.strides[0]
+            w = w * self.strides[1]
         elif self.border_mode == 'full':
             return super(UpConv2D, self).get_output_shape_for(input_shape)
         input_shape = N, self.nb_filter, h, w
@@ -186,7 +186,7 @@ class UpConv2D(Convolution2D):
 
     def call(self, x, mask=None):
         self._check_stride()
-        sh, sw = self.subsample
+        sh, sw = self.strides
         # inspired by : <http://distill.pub/2016/deconv-checkerboard/>
         # Upsample by just copying pixel values in grids of size subsamplexsubsample
         s = sh
@@ -199,23 +199,25 @@ class UpConv2D(Convolution2D):
             x = T.ones((shape[0], shape[1], shape[2], s, shape[3], s)) * x
             x = x.reshape((shape[0], shape[1], shape[2] * s, shape[3] * s))
         # the following is equivalent to keras code except strides=(1, 1) instead
-        # of being equal to self.subsample
-        output = K.conv2d(x, self.W, strides=(1, 1),
-                          border_mode=self.border_mode,
-                          dim_ordering=self.dim_ordering,
-                          filter_shape=self.W_shape)
+        # of being equal to self.strides
+        W, b = self.weights
+        output = K.conv2d(
+            x, W,
+            strides=(1, 1),
+            padding=self.padding,
+            data_format=self.data_format)
         if self.bias:
-            if self.dim_ordering == 'th':
-                output += K.reshape(self.b, (1, self.nb_filter, 1, 1))
-            elif self.dim_ordering == 'tf':
-                output += K.reshape(self.b, (1, 1, 1, self.nb_filter))
+            if self.data_format == 'channels_first':
+                output += K.reshape(b, (1, self.filters, 1, 1))
+            elif self.data_format == 'channels_last':
+                output += K.reshape(b, (1, 1, 1, self.filters))
             else:
-                raise Exception('Invalid dim_ordering: ' + self.dim_ordering)
+                raise ValueError('Invalid data format: ' + self.data_format)
         output = self.activation(output)
         return output
 
     def _check_stride(self):
-        sh, sw = self.subsample
+        sh, sw = self.strides
         assert sh == sw, 'stride should be the same in height and width'
         if sh > 1:
             assert self.border_mode == 'same', 'Only border_mode="same" is supported if stride > 1'
@@ -243,7 +245,9 @@ class Normalize(Layer):
         base_config = super(Normalize, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
 
+
 class CategoricalMasking(Layer):
+
     def __init__(self, mask_char=0., **kwargs):
         self.supports_masking = True
         self.mask_char = mask_char
@@ -251,7 +255,7 @@ class CategoricalMasking(Layer):
 
     def compute_mask(self, x, input_mask=None):
         return K.not_equal(x.argmax(axis=-1, keepdims=True), self.mask_char)
-    
+
     def call(self, x, mask=None):
         boolean_mask = self.compute_mask(x)
         return x * K.cast(boolean_mask, K.floatx())
@@ -260,6 +264,7 @@ class CategoricalMasking(Layer):
         config = {'mask_char': self.mask_char}
         base_config = super(CategoricalMasking, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
+
 
 class WordDropout(Layer):
 
@@ -293,6 +298,7 @@ class WordDropout(Layer):
             config = {'proba': self.proba}
             base_config = super(WordDropout, self).get_config()
             return dict(list(base_config.items()) + list(config.items()))
+
 
 class CategoricalNoise(Layer):
 
@@ -328,6 +334,7 @@ class CategoricalNoise(Layer):
             config = {'proba': self.proba, 'axis': self.axis, 'mask_char': self.mask_char}
             base_config = super(CategoricalNoise, self).get_config()
             return dict(list(base_config.items()) + list(config.items()))
+
 
 layers = {
     'ksparse': ksparse,

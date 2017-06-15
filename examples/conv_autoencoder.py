@@ -20,9 +20,7 @@ def main():
                 'encode_nb_filters': [64, 64, 64],
                 'encode_filter_sizes': [5, 5, 5],
                 'encode_activations': ['relu', 'relu', 'relu'],
-
                 'code_activations': [{'name': 'winner_take_all_spatial', 'params': {'nb_active': 1}}],
-
                 'decode_nb_filters': [],
                 'decode_filter_sizes': [],
                 'decode_activations': [],
@@ -72,7 +70,7 @@ def main():
                     'patience': 5
                 }
             },
-            'max_nb_epochs': 20,
+            'max_nb_epochs': 100,
             'batch_size': 128,
             'pred_batch_size': 128,
             'loss': 'binary_crossentropy',
@@ -91,7 +89,7 @@ def main():
                 'seed': 42,
                 'batch_size': 128,
                 'nb_samples': 256,
-                'nb_iter': 100,
+                'nb_iter': 10,
                 'binarize': {
                     'name': 'none',
                     'params': {

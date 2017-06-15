@@ -93,6 +93,7 @@ def _run_method(method, model):
     filename = os.path.join(save_folder, 'generated.npz')
     np.savez_compressed(filename, full=X, generated=X[:, -1])
 
+
 def _apply_noise(name, params, X, rng=np.random):
     if name == 'masking':
         # with proba noise_pr, set X value to zero, e.g
@@ -115,8 +116,8 @@ def _apply_noise(name, params, X, rng=np.random):
         proba = params['proba']
         mask_char = params.get('mask_char')
         pred = _get_predict(
-            CategoricalNoise(axis=axis, proba=proba, mask_char=mask_char), 
-            X.shape[1:], 
+            CategoricalNoise(axis=axis, proba=proba, mask_char=mask_char),
+            X.shape[1:],
             learning_phase=1)
         X = pred(X)
         X = floatX(X)
@@ -125,7 +126,7 @@ def _apply_noise(name, params, X, rng=np.random):
         char = params['char']
         proba = params['proba']
         pred = _get_predict(
-            WordDropout(proba=proba, char=char), 
+            WordDropout(proba=proba, char=char),
             X.shape[1:],
             learning_phase=1)
         X = pred(X)
@@ -135,6 +136,7 @@ def _apply_noise(name, params, X, rng=np.random):
         return X
     else:
         raise ValueError('Unknown noise method : {}'.format(name))
+
 
 def _apply_binarization(name, params, X, rng=np.random):
     if name == 'sample_bernoulli':
@@ -246,6 +248,7 @@ def iterative_refinement(params, model, apply_noise=_apply_noise, apply_binariza
 
     # reconstruction loop
     previous_score = None
+
     for i in (range(1, nb_iter + 1)):
         logger.info('Iteration {}'.format(i))
         s = apply_noise(noise_name, noise_params, s, rng=rng)
@@ -262,6 +265,7 @@ def iterative_refinement(params, model, apply_noise=_apply_noise, apply_binariza
             break
         previous_score = score
     return X
+
 
 def get_method(name):
     return {'iterative_refinement': iterative_refinement}[name]
@@ -315,17 +319,20 @@ def _report_image_features(cb):
         else:
             pass
 
+
 def _get_input_reconstruction_grid(X, X_rec, grid_of_images=grid_of_images_default):
     X = grid_of_images(X)
     X_rec = grid_of_images(X_rec)
     img = horiz_merge(X, X_rec)
     return img
 
+
 def _get_predict(layer, input_shape, learning_phase=0):
     inp = Input(input_shape)
     y = layer(inp)
     model = Model(input=inp, output=y)
     func = K.function([model.layers[0].input, K.learning_phase()], [model.layers[1].output])
+
     def apply_func(x):
         result, = func([x, learning_phase])
         return result

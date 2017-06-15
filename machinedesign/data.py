@@ -2,7 +2,6 @@
 This module contains common functions for data processing.
 """
 from __future__ import division
-import os
 from functools import partial
 from itertools import cycle
 from six.moves import map

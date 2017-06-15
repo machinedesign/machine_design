@@ -388,7 +388,7 @@ def _build_model(spec, input_shape, output_shape, builders={}):
                 model = model_builder(params, input_shape, output_shape)
             x = model(x)
         out = x
-        model = Model(input=inp, output=out)
+        model = Model(inputs=inp, outputs=out)
         return model
     # Single models
     elif isinstance(spec, dict):

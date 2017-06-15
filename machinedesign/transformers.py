@@ -190,10 +190,10 @@ class FileLoader:
         self.filename = filename
         self.pos = pos
         self.transformer_ = None
-    
+
     def partial_fit(self, X):
         pass
- 
+
     def _load(self):
         if self.transformer_ is None:
             with open(self.filename, 'rb') as fd:
@@ -206,6 +206,7 @@ class FileLoader:
     def inverse_transform(self, X):
         self._load()
         self.transformer_[self.pos].inverse_transform(X)
+
 
 def onehot(X, D=10):
     """

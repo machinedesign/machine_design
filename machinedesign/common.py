@@ -3,7 +3,6 @@ This module contains some common functions used in models
 """
 from __future__ import division
 from __future__ import print_function
-from functools import partial
 
 from keras.layers import Activation
 from keras.layers import Dense
@@ -103,7 +102,7 @@ def fully_connected_layers(x, nb_hidden_units, activations, init='glorot_uniform
     """
     assert len(activations) == len(nb_hidden_units)
     for nb_hidden, act in zip(nb_hidden_units, activations):
-        x = Dense(nb_hidden, init=init)(x)
+        x = Dense(nb_hidden, kernel_initializer=init)(x)
         x = activation_function(act)(x)
     return x
 
@@ -141,8 +140,8 @@ def conv2d_layers(x, nb_filters, filter_sizes, activations,
     """
     assert len(nb_filters) == len(filter_sizes) == len(activations)
     for nb_filter, filter_size, act in zip(nb_filters, filter_sizes, activations):
-        x = conv_layer(nb_filter, filter_size, filter_size, init=init,
-                       border_mode=border_mode, subsample=(stride, stride))(x)
+        x = conv_layer(nb_filter, (filter_size, filter_size), kernel_initializer=init,
+                       padding=border_mode, strides=(stride, stride))(x)
         x = activation_function(act)(x)
     return x
 
@@ -189,7 +188,7 @@ def _bidirectional(rnn_class):
     return f
 
 rnn_classes = {
-    'GRU': GRU, 
+    'GRU': GRU,
     'LSTM': LSTM,
     'RNN': SimpleRNN,
     'BidirectionalLSTM': _bidirectional(LSTM),
@@ -197,13 +196,16 @@ rnn_classes = {
     'BidirectionalRNN': _bidirectional(SimpleRNN)
 }
 
+
 def rnn_stack(x, nb_hidden_units, rnn_type='GRU', return_sequences=True, stateful=False, dropout=None):
     rnn_class = rnn_classes[rnn_type]
     for i, nb_units in enumerate(nb_hidden_units):
         r = True if i < len(nb_hidden_units) - 1 else return_sequences
         pr = dropout[i] if dropout else 0
-        x = rnn_class(nb_units, return_sequences=r, stateful=stateful, dropout_U=pr, dropout_W=pr)(x)
+        x = rnn_class(nb_units, return_sequences=r, stateful=stateful,
+                      dropout_U=pr, dropout_W=pr)(x)
     return x
+
 
 def build_optimizer(algo_name, algo_params):
     """

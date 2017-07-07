@@ -180,8 +180,8 @@ objectives = {
     'categorical_crossentropy': categorical_crossentropy
 }
 
-objectives = object_to_dict(keras_objectives)
-objectives.update(objectives)
+objectives_ = object_to_dict(keras_objectives)
+objectives.update(objectives_)
 
 
 def get_loss(loss, objectives=objectives):

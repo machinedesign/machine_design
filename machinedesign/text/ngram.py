@@ -22,9 +22,9 @@ class NGram(object):
                 end=self.end)
            self.models_[deg] = model
         self.vocab_ = list(set(char for doc in corpus for char in doc)) + [self.end]
-    
-    def generate(self, rng, max_size=15, none_if_doesnt_end=True):
-        return _generate(rng, self.models_, begin=self.begin, end=self.end, max_size=max_size, none_if_doesnt_end=none_if_doesnt_end, vocab=self.vocab_)
+   
+    def generate(self, rng, max_size=15, none_if_doesnt_end=True, smooting=0, degs=None):
+        return _generate(rng, self.models_, begin=self.begin, end=self.end, max_size=max_size, none_if_doesnt_end=none_if_doesnt_end, vocab=self.vocab_, smooting=smooting, degs=degs)
 
 def _build_model(data, deg=1, begin='^', end='$'):
     freq = defaultdict(_dict_of_float)
@@ -42,8 +42,9 @@ def _build_model(data, deg=1, begin='^', end='$'):
 def _dict_of_float():
     return defaultdict(float)
 
-def _generate(rng, models, begin='^', end='$', max_size=15, none_if_doesnt_end=True, vocab=None):
-    degs = models.keys()
+def _generate(rng, models, begin='^', end='$', max_size=15, none_if_doesnt_end=True, vocab=None, smooting=0, degs=None):
+    if degs is None:
+        degs = models.keys()
     degs = sorted(degs, reverse=True)
     maxdeg = max(degs)
     s = begin
@@ -64,8 +65,12 @@ def _generate(rng, models, begin='^', end='$', max_size=15, none_if_doesnt_end=T
             char_idx = rng.randint(0, len(vocab) - 1)
             char = vocab[char_idx]
         else:
-            chars = list(pr[prev].keys())
-            probas = list(pr[prev].values())
+            chars = vocab
+            probas = [pr[prev][char] if char in pr[prev] else 0. for char in vocab]
+            if smooting > 0:
+                probas = np.array(probas)
+                probas += smooting
+                probas /= probas.sum()
             char_idx = np.random.multinomial(1, probas).argmax()
             char = chars[char_idx]
         if char == end:

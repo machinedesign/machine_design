@@ -220,7 +220,7 @@ class UpConv2D(Convolution2D):
         sh, sw = self.strides
         assert sh == sw, 'stride should be the same in height and width'
         if sh > 1:
-            assert self.border_mode == 'same', 'Only border_mode="same" is supported if stride > 1'
+            assert self.padding == 'same', 'Only padding="same" is supported if stride > 1'
 
 
 class Normalize(Layer):

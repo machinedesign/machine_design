@@ -96,6 +96,12 @@ def grid_of_images(M, border=0, bordercolor=[0.0, 0.0, 0.0], shape=None, normali
 
     im = np.array(bordercolor) * np.ones(
         ((height + border) * n1 + border, (width + border) * n0 + border, 1), dtype='<f8')
+    # shape = (n0, n1)
+    # j corresponds to rows in the grid, n1 should correspond to nb of rows
+    # i corresponds to columns in the grid, n0 should correspond to nb of cols
+    # M should be such that the first n1 examples correspond to row 1, 
+    # next n1 examples correspond to row 2, etc. that is, M first axis
+    # can be reshaped to (n1, n0)
     for i in range(n0):
         for j in range(n1):
             if i * n1 + j < numimages:

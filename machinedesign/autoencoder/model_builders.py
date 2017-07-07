@@ -23,8 +23,7 @@ def convolutional_bottleneck(params, input_shape, output_shape):
     conv1->conv2->...conv_h -> code_activations(conv_h)...-> conv_n
 
     form 1 to h : pad='valid' or pad='same' if stride > 1
-    from h + 1 to n : pad='full' or pad='same' if stride >
-    1
+    from h + 1 to n : pad='full' or pad='same' if stride > 1
     params
     ------
 
@@ -78,7 +77,6 @@ def convolutional_bottleneck(params, input_shape, output_shape):
         border_mode='valid' if stride == 1 else 'same',
         stride=stride,
         conv_layer=Convolution2D)
-
     # Apply code activations (e.g sparsity)
     for act in code_activations:
         x = activation_function(act)(x)
@@ -92,7 +90,6 @@ def convolutional_bottleneck(params, input_shape, output_shape):
         border_mode='full' if stride == 1 else 'same',
         stride=stride,
         conv_layer=UpConv2D)
-
     out = x
     model = Model(inputs=inp, outputs=out)
     check_model_shape_or_exception(model, output_shape)

@@ -173,15 +173,15 @@ class UpConv2D(Convolution2D):
     exception will be thrown.
     """
 
-    def get_output_shape_for(self, input_shape):
+    def compute_output_shape(self, input_shape):
         self._check_stride()
         N, c, h, w = input_shape
-        if self.border_mode == 'same':
+        if self.padding == 'same':
             h = h * self.strides[0]
             w = w * self.strides[1]
-        elif self.border_mode == 'full':
-            return super(UpConv2D, self).get_output_shape_for(input_shape)
-        input_shape = N, self.nb_filter, h, w
+        elif self.padding == 'full':
+            return super(UpConv2D, self).compute_shape(input_shape)
+        input_shape = N, self.filters, h, w
         return input_shape
 
     def call(self, x, mask=None):

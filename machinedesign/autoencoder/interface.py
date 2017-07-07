@@ -303,10 +303,9 @@ def _report_image_features(cb):
     # case.
     if model.input_shape[1] not in (1, 3):
         return
-
     for layer in get_layers(model):
-        if hasattr(layer, 'W'):
-            W = layer.W.get_value()
+        if hasattr(layer, 'kernel'):
+            W = layer.kernel.get_value()
             try:
                 img = reshape_to_images(W, input_shape=model.input_shape[1:])
             except ValueError:

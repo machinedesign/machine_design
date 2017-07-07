@@ -180,7 +180,7 @@ class UpConv2D(Convolution2D):
             h = h * self.strides[0]
             w = w * self.strides[1]
         elif self.padding == 'full':
-            return super(UpConv2D, self).compute_shape(input_shape)
+            return super().compute_output_shape(input_shape)
         input_shape = N, self.filters, h, w
         return input_shape
 

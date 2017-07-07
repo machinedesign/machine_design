@@ -131,12 +131,13 @@ def reshape_to_images(x, input_shape=None):
             be  (h, w, nb_channels).
 
     if x is a 4D numpy array:
-        - if the first tensor dim is 1 or 3, assume it is color channel, so
-          exchange first and second axis.
+        - if the first tensor dim is 1 or 3 like e.g. (1, a, b, c), then assume it is 
+          color channel and transform to (a, 1, b, c)
         - if the second tensor dim is 1 or 3, leave x it as it is
-        - otherwise the first and second dim are considered both to be
-          nb_examples, the color will be grayscale, and the third and forth
-          dim will be height and width.
+        - if the third tensor dim is 1 or 3, like e.g. (a, b, 1, c), then assume it is
+          color channel and transform to (c, 1, a, b)
+        - if the fourth tensor dim is 1 or 3, like e.g. (a, b, c, 1), then assume it is
+          color channel and transform to (c, 1, a, b)
     Parameters
     ----------
 
@@ -162,6 +163,12 @@ def reshape_to_images(x, input_shape=None):
             x = x.transpose((1, 0, 2, 3))
             return x
         elif x.shape[1] in (1, 3):
+            return x
+        elif x.shape[2] in (1, 3):
+             x = x.transpose((3, 2, 0, 1))
+             return x
+        elif x.shape[3] in (1, 3):
+            x = x.transpose((2, 3, 0, 1))
             return x
         else:
             raise ValueError('Cant recognize a shape of size : {}'.format(len(x.shape)))

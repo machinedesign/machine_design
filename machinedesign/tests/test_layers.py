@@ -1,6 +1,7 @@
 import numpy as np
 from machinedesign.layers import ksparse
 from machinedesign.layers import winner_take_all_spatial
+from machinedesign.layers import winner_take_all_channel
 from machinedesign.layers import axis_softmax
 
 import keras.backend as K

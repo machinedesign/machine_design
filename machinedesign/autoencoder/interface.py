@@ -47,7 +47,6 @@ default_config = default_config._replace(model_builders=model_builders)
 
 
 def train(params, config=default_config, custom_callbacks=[], logger=logger):
-    check_family_or_exception(params['family'], 'autoencoder')
     # Callbacks
     callbacks = params['report']['callbacks']
     report_callbacks = []

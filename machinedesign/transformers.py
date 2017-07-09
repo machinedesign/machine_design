@@ -398,11 +398,31 @@ def doc_to_str(doc):
     doc = [d for d in doc if d not in (BEGIN_CHARACTER, ZERO_CHARACTER, END_CHARACTER)]
     return ''.join(doc)
 
+
+class Scaler:
+    """
+    Scale by some value.
+    nothing is fitted, the `value` is used as is.
+    """
+    def __init__(self, value):
+        self.value = value
+
+    def partial_fit(self, X):
+        pass
+
+    def transform(self, X):
+        return X / self.value
+
+    def inverse_transform(self, X):
+        return X * self.value
+
+
 transformers = {
     'Standardize': Standardize,
     'ColorDiscretizer': ColorDiscretizer,
     'FileLoader': FileLoader,
-    'DocumentVectorizer': DocumentVectorizer
+    'DocumentVectorizer': DocumentVectorizer,
+    'Scaler': Scaler,
 }
 
 

@@ -547,13 +547,14 @@ def build_models_checkpoint_callback(params, models, filepaths):
     """
     loss = params['loss']
     save_best_only = params['save_best_only']
+    mode = params.get('mode', 'auto')
     callback = ModelsCheckpoint(
         models,
         filepaths,
         monitor=loss,
         verbose=1,
         save_best_only=save_best_only,
-        mode='auto' if loss else 'min')
+        mode=mode)
     return callback
 
 

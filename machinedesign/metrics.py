@@ -5,6 +5,7 @@ common to models.
 from functools import partial
 import numpy as np
 
+from .utils import get_axis
 
 def mean_squared_error(y_true, y_pred):
     """mean squared error (mean over all axes except the first)"""
@@ -36,10 +37,24 @@ def categorical_crossentropy(y_true, y_pred):
     return -np.log(y_pred[np.arange(len(y_pred)), y_true])
 
 
+def precision(y_true, y_pred, axis=1):
+    yt = y_true.argmax(axis=get_axis(axis))  # supposed to be onehot in the axis 'axis'
+    yt = yt.flatten()  # convert it to a vector
+    perm = list(range(y_pred.ndim))
+    # permute 'axis' and the first axis
+    perm[axis], perm[0] = perm[0], perm[axis]
+    perm = tuple(perm)
+    ypr = y_pred.transpose(perm)
+    ypr = ypr.reshape((ypr.shape[0], -1))
+    ypr = ypr.T
+    return (ypr.argmax(axis=1) == yt)
+
+
 metrics = {
     'mean_squared_error': mean_squared_error,
     'binary_crossentropy': binary_crossentropy,
-    'categorical_crossentropy': categorical_crossentropy
+    'categorical_crossentropy': categorical_crossentropy,
+    'precision': precision,
 }
 
 

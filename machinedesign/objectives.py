@@ -26,6 +26,12 @@ def dummy(y_true, y_pred):
     return (y_pred * 0).mean()
 
 
+def squared_error(y_true, y_pred):
+    y_true = y_true.flatten(2)
+    y_pred = y_pred.flatten(2)
+    return K.sum(K.square(y_pred - y_true), axis=1)
+
+
 def mean_squared_error(y_true, y_pred):
     """mean squared error (mean over all axes except the first)"""
     y_true = y_true.flatten(2)
@@ -100,7 +106,7 @@ def axis_categorical_crossentropy(y_true, y_pred, axis=1):
     ypr = y_pred.transpose(perm)
     ypr = ypr.reshape((ypr.shape[0], -1))
     ypr = ypr.T
-    return K.categorical_crossentropy(ypr, yt).mean()
+    return K.categorical_crossentropy(yt, ypr).mean()
 
 
 def objectness(y_true, y_pred, model_filename=None):
@@ -169,6 +175,7 @@ def loss_sum(y_true, y_pred, terms=[]):
 
 
 objectives = {
+    'squared_error': squared_error,
     'axis_categorical_crossentropy': axis_categorical_crossentropy,
     'feature_space_mean_squared_error': feature_space_mean_squared_error,
     'objectness': objectness,

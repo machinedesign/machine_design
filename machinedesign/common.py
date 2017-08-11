@@ -23,6 +23,7 @@ from .layers import layers
 from .layers import CategoricalNoise
 from .layers import WordDropout
 from .layers import Normalize
+from .layers import SaltAndPepper
 
 custom_objects = {}
 custom_objects.update(objectives)
@@ -57,11 +58,15 @@ def noise(x, name, params):
     """
     noise application helper.
 
-    name : 'gaussian'
+    name : 'gaussian' / 'zero_masking' / 'categorical' / 'word_dropout' / 'none'
         type of noise
     params: dict
         if name is 'gaussian':
             'std' : standard deviation of gaussian noise
+        if name is 'zero_masking':
+            'proba': probability of zeroing the units
+        if name is 'salt_and_pepper':
+            'proba': probability of zeroing the units
     """
     if name == 'gaussian':
         std = params['std']
@@ -71,6 +76,9 @@ def noise(x, name, params):
         x = Dropout(proba)(x)
         x = Normalize(bias=0, scale=proba)(x)
         return x
+    elif name == 'salt_and_pepper':
+        proba = params['proba']
+        return SaltAndPepper(proba)(x)
     elif name == 'categorical':
         return CategoricalNoise(**params)(x)
     elif name == 'word_dropout':

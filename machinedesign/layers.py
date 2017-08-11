@@ -336,6 +336,27 @@ class CategoricalNoise(Layer):
             return dict(list(base_config.items()) + list(config.items()))
 
 
+class SaltAndPepper(Layer):
+    """
+    proba : float
+        proba of zeroing out
+    """
+    def __init__(self, proba=0, **kwargs):
+        super(SaltAndPepper, self).__init__(**kwargs)
+        self.proba = proba
+    
+    def call(self, X, mask=None):
+        a = K.random_uniform(X.shape, 0, 1) <= (1 - self.proba) # a == 1  means keep the value
+        b = K.random_uniform(X.shape, 0, 1) <= 0.5 # b == 1 means set 1, b == 0 means set 0
+        c = K.equal(a, 0) * b
+        return X * a + c
+
+    def get_config(self):
+        config = {'proba': self.proba}
+        base_config = super(SaltAndPepper, self).get_config()
+        return dict(list(base_config.items()) + list(config.items()))
+
+
 layers = {
     'ksparse': ksparse,
     'winner_take_all_spatial': winner_take_all_spatial,
@@ -347,4 +368,5 @@ layers = {
     'CategoricalNoise': CategoricalNoise,
     'WordDropout': WordDropout,
     'CategoricalMasking': CategoricalMasking,
+    'SaltAndPepper': SaltAndPepper,
 }

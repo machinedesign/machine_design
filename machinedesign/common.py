@@ -101,16 +101,21 @@ def fully_connected_layers(x, nb_hidden_units, activations, init='glorot_uniform
         number of hidden units
     activations : str
         list of activation functions for each layer
-        (should be the same size than nb_hidden_units)
+        (should be at least the same size than nb_hidden_units).
+        the first len(nb_hidden_units) activations are applied after each layer.
+        the rest is applied after the last layer, one after the other.
 
     Returns
     -------
 
     keras layer
     """
-    assert len(activations) == len(nb_hidden_units)
+    assert len(activations) >= len(nb_hidden_units)
     for nb_hidden, act in zip(nb_hidden_units, activations):
         x = Dense(nb_hidden, kernel_initializer=init)(x)
+        x = activation_function(act)(x)
+    rest = activations[len(nb_hidden_units):]
+    for act in rest:
         x = activation_function(act)(x)
     return x
 
@@ -119,7 +124,28 @@ def conv2d_layers(x, nb_filters, filter_sizes, activations,
                   init='glorot_uniform', border_mode='valid',
                   stride=1, conv_layer=Convolution2D):
     """
-    Apply a stack of 2D convolutions to a layer `x`
+    Apply a stack of 2D convolutions to a layer `x` and return
+    the resulting layer
+    """
+    layers = conv2d_layers_all(
+        x, 
+        nb_filters, 
+        filter_sizes, 
+        activations, 
+        init=init, 
+        border_mode=border_mode, 
+        stride=stride, 
+        conv_layer=conv_layer
+    )
+    return layers[-1]
+
+
+def conv2d_layers_all(x, nb_filters, filter_sizes, activations,
+                     init='glorot_uniform', border_mode='valid',
+                     stride=1, conv_layer=Convolution2D):
+    """
+    Apply a stack of 2D convolutions to a layer `x` and return all
+    the intermediate layers
 
     Parameters
     ----------
@@ -140,19 +166,24 @@ def conv2d_layers(x, nb_filters, filter_sizes, activations,
         stride to use
     conv_layer : keras layer class
         keras layer to use from convolution
-
+ 
     Returns
     -------
 
-    keras layer
+    list keras layer
+
     """
     assert len(nb_filters) == len(filter_sizes) == len(activations)
+    layers = []
     for nb_filter, filter_size, act in zip(nb_filters, filter_sizes, activations):
         x = conv_layer(nb_filter, (filter_size, filter_size), kernel_initializer=init,
                        padding=border_mode, strides=(stride, stride))(x)
         x = activation_function(act)(x)
-    return x
+        layers.append(x)
+    return layers
 
+
+ 
 
 def conv1d_layers(x, nb_filters, filter_sizes, activations,
                   init='glorot_uniform', border_mode='valid',

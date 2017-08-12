@@ -336,20 +336,43 @@ class CategoricalNoise(Layer):
             return dict(list(base_config.items()) + list(config.items()))
 
 
+class ZeroMasking(Layer):
+    """
+    proba : float
+        probability of corruption (that is, of zeroing out a unit)
+    """
+    def __init__(self, proba=0, **kwargs):
+        super(ZeroMasking, self).__init__(**kwargs)
+        self.proba = proba
+    
+    def call(self, X, training=None):
+        def noised():
+            mask = K.random_uniform(X.shape, 0, 1) <= (1 - self.proba) # a == 1  means keep the value
+            return X * mask
+        return K.in_train_phase(noised, X, training=training)
+
+    def get_config(self):
+        config = {'proba': self.proba}
+        base_config = super(ZeroMasking, self).get_config()
+        return dict(list(base_config.items()) + list(config.items()))
+
+
 class SaltAndPepper(Layer):
     """
     proba : float
-        proba of zeroing out
+        probability of corruption
     """
     def __init__(self, proba=0, **kwargs):
         super(SaltAndPepper, self).__init__(**kwargs)
         self.proba = proba
     
-    def call(self, X, mask=None):
-        a = K.random_uniform(X.shape, 0, 1) <= (1 - self.proba) # a == 1  means keep the value
-        b = K.random_uniform(X.shape, 0, 1) <= 0.5 # b == 1 means set 1, b == 0 means set 0
-        c = K.equal(a, 0) * b
-        return X * a + c
+    def call(self, X, training=None):
+        def noised():
+            a = K.random_uniform(X.shape, 0, 1) <= (1 - self.proba) # a == 1  means keep the value
+            b = K.random_uniform(X.shape, 0, 1) <= 0.5 # b == 1 means set 1, b == 0 means set 0
+            c = K.equal(a, 0) * b
+            return X * a + c
+        return K.in_train_phase(noised, X, training=training)
 
     def get_config(self):
         config = {'proba': self.proba}
@@ -369,4 +392,5 @@ layers = {
     'WordDropout': WordDropout,
     'CategoricalMasking': CategoricalMasking,
     'SaltAndPepper': SaltAndPepper,
+    'ZeroMasking': ZeroMasking,
 }

@@ -4,6 +4,7 @@ from machinedesign.layers import winner_take_all_spatial
 from machinedesign.layers import winner_take_all_channel
 from machinedesign.layers import axis_softmax
 from machinedesign.layers import SaltAndPepper
+from machinedesign.layers import ZeroMasking
 
 import keras.backend as K
 
@@ -18,18 +19,31 @@ def test_k_sparse():
     y = pred([x])
     assert (y == 0).sum() == 7 * nb
 
+
 def test_salt_and_pepper():
     proba = 0.3
     act = SaltAndPepper(proba)
     X = K.placeholder(shape=(None, 10))
-    pred = K.function([X], act.call(X))
+    pred = K.function([X, K.learning_phase()], act.call(X))
     np.random.seed(42)
     nb = 10000
     x = np.random.uniform(0, 1, size=(nb, 50))
-    y = pred([x])
+    y = pred([x, True])
     assert np.allclose((y == 1).mean(axis=0), 0.5 * proba, atol=1e-2, rtol=1e-2)
-    assert np.allclose((y == 0).mean(axis=0), 0.5 * proba, atol=1e-2, rtol=1e-3)
-     
+    assert np.allclose((y == 0).mean(axis=0), 0.5 * proba, atol=1e-2, rtol=1e-2)
+
+
+def test_zero_masking():
+    proba = 0.3
+    act = ZeroMasking(proba)
+    X = K.placeholder(shape=(None, 10))
+    pred = K.function([X, K.learning_phase()], act.call(X))
+    np.random.seed(42)
+    nb = 10000
+    x = np.random.uniform(0, 1, size=(nb, 50))
+    y = pred([x, True])
+    assert np.allclose((y == 0).mean(axis=0), proba, atol=1e-2, rtol=1e-2)
+ 
 
 def test_winner_take_all_spatial():
     for nb_active in (0, 1, 2, 3, 100, 101):

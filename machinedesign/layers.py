@@ -2,6 +2,8 @@
 In this module I provide common keras layers used in the framework.
 """
 import keras.backend as K
+from keras import initializers as initializations
+from keras.engine import InputSpec
 from keras.layers import Layer
 from keras.layers import LeakyReLU
 from keras.layers import Convolution2D
@@ -222,7 +224,7 @@ class UpConv2D(Convolution2D):
         if sh > 1:
             assert self.padding == 'same', 'Only padding="same" is supported if stride > 1'
 
-
+    
 class Normalize(Layer):
     """
     a simple layer that takes an input X , multiply it by a scaler and
@@ -243,6 +245,83 @@ class Normalize(Layer):
     def get_config(self):
         config = {'bias': self.bias.tolist(), 'scale': self.scale.tolist()}
         base_config = super(Normalize, self).get_config()
+        return dict(list(base_config.items()) + list(config.items()))
+
+
+class LearnableNormalizer(Layer):
+    """
+    Taken from : https://raw.githubusercontent.com/flyyufelix/DenseNet-Keras/master/custom_layers.py
+ 
+    Learns a set of weights and biases used for scaling the input data.
+    the output consists simply in an element-wise multiplication of the input
+    and a sum of a set of constants:
+
+        out = in * gamma + beta,
+
+    where 'gamma' and 'beta' are the weights and biases larned.
+
+    # Arguments
+        axis: integer, axis along which to normalize in mode 0. For instance,
+            if your input tensor has shape (samples, channels, rows, cols),
+            set axis to 1 to normalize per feature map (channels axis).
+        weights: Initialization weights.
+            List of 2 Numpy arrays, with shapes:
+            `[(input_shape,), (input_shape,)]`
+`        beta_init: name of initialization function for shift parameter
+            (see [initializations](../initializations.md)), or alternatively,
+            Theano/TensorFlow function to use for weights initialization.
+            This parameter is only relevant if you don't pass a `weights` argument.
+        gamma_init: name of initialization function for scale parameter (see
+            [initializations](../initializations.md)), or alternatively,
+            Theano/TensorFlow function to use for weights initialization.
+            This parameter is only relevant if you don't pass a `weights` argument.
+    """
+    def __init__(self, weights=None, axis=-1, beta_init='zero', gamma_init='one', **kwargs):
+        self.axis = axis
+        self.beta_init = initializations.get(beta_init)
+        self.gamma_init = initializations.get(gamma_init)
+        self.initial_weights = weights
+        super(LearnableNormalizer, self).__init__(**kwargs)
+
+    def build(self, input_shape):
+        self.input_spec = [InputSpec(shape=input_shape)]
+        shape = (int(input_shape[self.axis]),)
+        self.gamma = K.variable(self.gamma_init(shape), name='{}_gamma'.format(self.name))
+        self.beta = K.variable(self.beta_init(shape), name='{}_beta'.format(self.name))
+        self.trainable_weights = [self.gamma, self.beta]
+        if self.initial_weights is not None:
+            self.set_weights(self.initial_weights)
+            del self.initial_weights
+
+    def call(self, x, mask=None):
+        input_shape = self.input_spec[0].shape
+        broadcast_shape = [1] * len(input_shape)
+        broadcast_shape[self.axis] = input_shape[self.axis]
+
+        out = K.reshape(self.gamma, broadcast_shape) * x + K.reshape(self.beta, broadcast_shape)
+        return out
+
+    def get_config(self):
+        config = {"axis": self.axis}
+        base_config = super(LearnableNormalizer, self).get_config()
+        return dict(list(base_config.items()) + list(config.items()))
+
+
+class MinMaxNormalizer(Layer):
+
+    def __init__(self, axis=-1, eps=1e-7, **kwargs):
+        super(MinMaxNormalizer, self).__init__(**kwargs)
+        self.axis = axis
+        self.eps = eps
+
+    def call(self, X):
+        a = X.min(axis=self.axis, keepdims=True)
+        b = X.max(axis=self.axis, keepdims=True)
+        return (X - a) / (b - a + self.eps)
+
+    def get_config(self):
+        config = {'axis': self.axis, 'eps': self.eps}
+        base_config = super(MinMaxNormalizer, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
 
 
@@ -380,6 +459,7 @@ class SaltAndPepper(Layer):
         return dict(list(base_config.items()) + list(config.items()))
 
 
+
 layers = {
     'ksparse': ksparse,
     'winner_take_all_spatial': winner_take_all_spatial,
@@ -388,6 +468,8 @@ layers = {
     'UpConv2D': UpConv2D,
     'leaky_relu': LeakyReLU,
     'Normalize': Normalize,
+    'LearnableNormalizer': LearnableNormalizer,
+    'MinMaxNormalizer': MinMaxNormalizer,
     'CategoricalNoise': CategoricalNoise,
     'WordDropout': WordDropout,
     'CategoricalMasking': CategoricalMasking,

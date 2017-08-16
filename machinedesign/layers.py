@@ -44,6 +44,25 @@ class ksparse(Layer):
         return dict(list(base_config.items()) + list(config.items()))
 
 
+class winner_take_all_fc(Layer):
+
+    def __init__(self, zero_ratio=0, **kwargs):
+        super(winner_take_all_fc, self).__init__(**kwargs)
+        self.zero_ratio = zero_ratio
+
+    def call(self, X, mask=None):
+        import theano.tensor as T
+        idx = T.cast(self.zero_ratio * T.cast(X.shape[0], 'float32'), 'int32')
+        theta = X[T.argsort(X, axis=0)[idx, :], T.arange(X.shape[1])]
+        mask = X >= theta[None, :]
+        return X * mask
+
+    def get_config(self):
+        config = {'zero_ratio': self.zero_ratio}
+        base_config = super(winner_take_all_fc, self).get_config()
+        return dict(list(base_config.items()) + list(config.items()))
+
+
 class winner_take_all_spatial(Layer):
     # TODO make it compatible with tensorflow (only works with theano)
 
@@ -324,6 +343,11 @@ class MinMaxNormalizer(Layer):
         base_config = super(MinMaxNormalizer, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
 
+class ReverseColorChannel(Layer):
+
+    def call(self, X):
+        return X[:, ::-1, :, :]
+
 
 class CategoricalMasking(Layer):
 
@@ -462,6 +486,7 @@ class SaltAndPepper(Layer):
 
 layers = {
     'ksparse': ksparse,
+    'winner_take_all_fc': winner_take_all_fc,
     'winner_take_all_spatial': winner_take_all_spatial,
     'winner_take_all_channel': winner_take_all_channel,
     'axis_softmax': axis_softmax,
@@ -475,4 +500,5 @@ layers = {
     'CategoricalMasking': CategoricalMasking,
     'SaltAndPepper': SaltAndPepper,
     'ZeroMasking': ZeroMasking,
+    'ReverseColorChannel': ReverseColorChannel,
 }

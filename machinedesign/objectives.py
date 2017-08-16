@@ -8,11 +8,16 @@ rather than numpy.
 import warnings
 from functools import partial
 
+import numpy as np
+
 from keras import backend as K
 from keras import losses as keras_objectives
 from keras.models import load_model
 from keras.models import Model
 
+from .layers import ReverseColorChannel
+from .layers import Normalize
+from .data import floatX
 from .utils import object_to_dict
 from .utils import get_axis
 
@@ -47,9 +52,10 @@ def categorical_crossentropy(y_true, y_pred):
     return -K.log(y_pred[K.arange(0, y_true.shape[0]), y_true]).mean()
 
 
-def feature_space_mean_squared_error(y_true, y_pred, model_filename=None, layer=None):
+def feature_space_mean_squared_error(y_true, y_pred, model_filename=None, layer=None, bias=None, scale=None, reverse_color_channel=False):
     """
     mean squared error on a feature space defined by a model
+    usually those models need some preprocessing. This is why bias, scale, and reverse_color_channel are for.
 
     Parameters
     ----------
@@ -58,6 +64,15 @@ def feature_space_mean_squared_error(y_true, y_pred, model_filename=None, layer=
         filename of the model to load (should be a .h5 keras model)
     layer : str
         layer to use. raises an exception when the layer does not exist.
+    bias : None or list
+        list of real numbers with as many elements as number of image channels (e.g. usually 3).
+        it is used to transform the input to `input * scale + bias` on the channel axis.
+    scale : None or list
+        list of real numbers with as many elements as number of image channels (e.g. usually 3).
+        it is used to transform the input to `input * scale + bias` on the channel axis.
+    reverse_color_channel : bool
+        if True, do X = X[:, ::-1, :, :] before normalizing with bias and scale.
+        Used in imagenet models.
     """
     if model_filename is None or layer is None:
         warnings.warn('In case you are willing to train this model, please specify `model_filename` and `layer` in the parameters of the loss.'
@@ -72,7 +87,24 @@ def feature_space_mean_squared_error(y_true, y_pred, model_filename=None, layer=
             'layer {} does not exist, available layers are : {}'.format(layer, layer_names))
     model_layer = Model(inputs=model.layers[0].input, outputs=model.get_layer(layer).output)
     model_layer.trainable = False
-    return mean_squared_error(model_layer(y_true), model_layer(y_pred)).mean()
+    transforms = []
+    if reverse_color_channel:
+        transforms.append(ReverseColorChannel())
+    if bias and scale:
+        nb_channels = model_layer.input_shape[1]
+        bias = floatX(bias)
+        scale = floatX(scale)
+        assert len(bias.shape) == 1 and bias.shape[0] == nb_channels, 'bias should have {} elements'.format(nb_channels)
+        assert len(scale.shape) == 1 and scale.shape[0] == nb_channels, 'scale should have {} elements'.format(nb_channels)
+        bias = bias[np.newaxis, :, np.newaxis, np.newaxis]
+        scale = scale[np.newaxis, :, np.newaxis, np.newaxis]
+        norm = Normalize(bias=bias, scale=scale)
+        transforms.append(norm)
+    transforms.append(model_layer)
+    for tf in transforms:
+        y_true = tf(y_true)
+        y_pred = tf(y_pred)
+    return mean_squared_error(y_true, y_pred).mean()
 
 
 def axis_categorical_crossentropy(y_true, y_pred, axis=1):

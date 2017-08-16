@@ -1,5 +1,6 @@
 import numpy as np
 from machinedesign.layers import ksparse
+from machinedesign.layers import winner_take_all_fc
 from machinedesign.layers import winner_take_all_spatial
 from machinedesign.layers import winner_take_all_channel
 from machinedesign.layers import axis_softmax
@@ -18,6 +19,20 @@ def test_k_sparse():
     x = np.random.uniform(-1, 1, size=(nb, 10))
     y = pred([x])
     assert (y == 0).sum() == 7 * nb
+    assert np.all((y == 0).sum(axis=1) == 7)
+
+
+def test_winner_take_all_fc():
+    act = winner_take_all_fc(zero_ratio=0.7)
+    X = K.placeholder(shape=(None, 10))
+    pred = K.function([X], act.call(X))
+    np.random.seed(42)
+    nb = 100
+    x = np.random.uniform(-1, 1, size=(nb, 10))
+    y = pred([x])
+    assert (y == 0).sum() == 7 * nb
+    assert np.all((y == 0).sum(axis=0) == 0.7*nb)
+
 
 
 def test_salt_and_pepper():

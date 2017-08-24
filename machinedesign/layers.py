@@ -45,7 +45,17 @@ class ksparse(Layer):
 
 
 class winner_take_all_fc(Layer):
+    """
+    For a given hidden unit, compute the top activations of that hidden unit along the mini-batch, and
+    zero-out `zero_ratio` of the smallest activations. Contrary to `ksparse`, there is no dead unit
+    problem because all the hidden units (and their corresponding) parameters are updated  for a
+    mini-batch, regardless of the degree of sparsity.
 
+    References
+    ----------
+
+    [1] Makhzani, A., & Frey, B. (2013). k-Sparse Autoencoders. arXiv preprint arXiv:1312.5663.
+    """
     def __init__(self, zero_ratio=0, **kwargs):
         super(winner_take_all_fc, self).__init__(**kwargs)
         self.zero_ratio = zero_ratio
@@ -63,9 +73,30 @@ class winner_take_all_fc(Layer):
         return dict(list(base_config.items()) + list(config.items()))
 
 
+class winner_take_all_lifetime(Layer):
+    """
+    Same thtan `winner_take_all_fc` but for convolutional layers.
+    """
+    def __init__(self, zero_ratio=0, **kwargs):
+        super(winner_take_all_lifetime, self).__init__(**kwargs)
+        self.zero_ratio = zero_ratio
+
+    def call(self, X, mask=None):
+        import theano.tensor as T
+        idx = T.cast(self.zero_ratio * T.cast(X.shape[0], 'float32'), 'int32')
+        Xbest = X.max(axis=(2, 3))
+        theta = Xbest[T.argsort(Xbest, axis=0)[idx, :], T.arange(Xbest.shape[1])]
+        mask = Xbest[:, :, None, None] >= theta[None, :, None, None]
+        return X * mask
+
+    def get_config(self):
+        config = {'zero_ratio': self.zero_ratio}
+        base_config = super(winner_take_all_lifetime, self).get_config()
+        return dict(list(base_config.items()) + list(config.items()))
+
+
 class winner_take_all_spatial(Layer):
     # TODO make it compatible with tensorflow (only works with theano)
-
     """
     Winner take all spatial sparsity defined in [1].
     it takes a convolutional layer, then for each feature map,
@@ -489,6 +520,7 @@ layers = {
     'winner_take_all_fc': winner_take_all_fc,
     'winner_take_all_spatial': winner_take_all_spatial,
     'winner_take_all_channel': winner_take_all_channel,
+    'winner_take_all_lifetime': winner_take_all_lifetime,
     'axis_softmax': axis_softmax,
     'UpConv2D': UpConv2D,
     'leaky_relu': LeakyReLU,

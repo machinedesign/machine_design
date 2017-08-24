@@ -36,6 +36,34 @@ def horiz_merge(left, right):
     im_merge[:, left.shape[1]:] = right
     return im_merge
 
+def vert_merge(top, bottom):
+    """
+    merges two images, top and bottom vertically to obtain
+    a bigger image containing both.
+
+    Parameters
+    ---------
+    top: 2D or 3D numpy array
+        top image.
+        2D for grayscale.
+        3D for color.
+    bottom : numpy array array
+        bottom image.
+        2D for grayscale
+        3D for color.
+
+    Returns
+    -------
+
+    numpy array (2D or 3D depending on left and right)
+    """
+    im = horiz_merge(top, bottom)
+    if len(im.shape) == 2:
+        im = im.transpose((1, 0))
+    elif len(im.shape) == 3:
+        im = im.transpose((1, 0, 2))
+    return im
+
 
 def grid_of_images(M, border=0, bordercolor=[0.0, 0.0, 0.0], shape=None, normalize=False):
     """

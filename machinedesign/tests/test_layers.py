@@ -3,6 +3,7 @@ from machinedesign.layers import ksparse
 from machinedesign.layers import winner_take_all_fc
 from machinedesign.layers import winner_take_all_spatial
 from machinedesign.layers import winner_take_all_channel
+from machinedesign.layers import winner_take_all_lifetime
 from machinedesign.layers import axis_softmax
 from machinedesign.layers import SaltAndPepper
 from machinedesign.layers import ZeroMasking
@@ -33,6 +34,17 @@ def test_winner_take_all_fc():
     assert (y == 0).sum() == 7 * nb
     assert np.all((y == 0).sum(axis=0) == 0.7*nb)
 
+
+def test_winner_take_all_lifetime():
+    act = winner_take_all_lifetime(zero_ratio=0.7)
+    X = K.placeholder(shape=(None, 10, 5, 5))
+    pred = K.function([X], act.call(X))
+    np.random.seed(42)
+    nb = 100
+    x = np.random.uniform(-1, 1, size=(nb, 10, 5, 5))
+    y = pred([x])
+    assert (y == 0).sum() == 7 * 5 * 5 * nb
+    assert np.all((y == 0).sum(axis=(0, 2, 3)) == 0.7 * nb * 5 * 5)
 
 
 def test_salt_and_pepper():

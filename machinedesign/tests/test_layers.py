@@ -46,6 +46,18 @@ def test_winner_take_all_lifetime():
     assert (y == 0).sum() == 7 * 5 * 5 * nb
     assert np.all((y == 0).sum(axis=(0, 2, 3)) == 0.7 * nb * 5 * 5)
 
+def test_winner_take_all_kchannel():
+    act = winner_take_all_lifetime(zero_ratio=0.7)
+    X = K.placeholder(shape=(None, 10, 5, 5))
+    pred = K.function([X], act.call(X))
+    np.random.seed(42)
+    nb = 100
+    x = np.random.uniform(-1, 1, size=(nb, 10, 5, 5))
+    y = pred([x])
+    assert (y == 0).sum() == 7 * 5 * 5 * nb
+    assert np.all((y == 0).sum(axis=(0, 2, 3)) == 0.7 * nb * 5 * 5)
+
+
 
 def test_salt_and_pepper():
     proba = 0.3

@@ -7,6 +7,7 @@ from keras.engine import InputSpec
 from keras.layers import Layer
 from keras.layers import LeakyReLU
 from keras.layers import Convolution2D
+from keras.layers import Dropout
 
 from .utils import get_axis
 from .data import floatX
@@ -75,7 +76,7 @@ class winner_take_all_fc(Layer):
 
 class winner_take_all_lifetime(Layer):
     """
-    Same thtan `winner_take_all_fc` but for convolutional layers.
+    Same than `winner_take_all_fc` but for convolutional layers.
     """
     def __init__(self, zero_ratio=0, **kwargs):
         super(winner_take_all_lifetime, self).__init__(**kwargs)
@@ -93,6 +94,28 @@ class winner_take_all_lifetime(Layer):
         config = {'zero_ratio': self.zero_ratio}
         base_config = super(winner_take_all_lifetime, self).get_config()
         return dict(list(base_config.items()) + list(config.items()))
+
+class winner_take_all_kchannel(Layer):
+    """
+    Same than ksparse but for convolutional layers.
+    """
+    def __init__(self, zero_ratio=0, **kwargs):
+        super(winner_take_all_kchannel, self).__init__(**kwargs)
+        self.zero_ratio = zero_ratio
+
+    def call(self, X, mask=None):
+        import theano.tensor as T
+        idx = T.cast(self.zero_ratio * T.cast(X.shape[1], 'float32'), 'int32')
+        Xbest = X.max(axis=(2, 3))
+        theta = Xbest[T.arange(Xbest.shape[0]), T.argsort(Xbest, axis=1)[:, idx]]
+        mask = Xbest[:, :, None, None] >= theta[:, None, None, None]
+        return X * mask
+
+    def get_config(self):
+        config = {'zero_ratio': self.zero_ratio}
+        base_config = super(winner_take_all_kchannel, self).get_config()
+        return dict(list(base_config.items()) + list(config.items()))
+
 
 
 class winner_take_all_spatial(Layer):
@@ -168,6 +191,8 @@ class winner_take_all_channel(Layer):
         self.stride = stride
 
     def call(self, X, mask=None):
+        if self.stride == 0:
+            return X
         B, F = X.shape[0:2]
         w, h = X.shape[2:]
         X_ = X.reshape((B, F, w // self.stride, self.stride, h // self.stride, self.stride))
@@ -520,6 +545,7 @@ layers = {
     'winner_take_all_fc': winner_take_all_fc,
     'winner_take_all_spatial': winner_take_all_spatial,
     'winner_take_all_channel': winner_take_all_channel,
+    'winner_take_all_kchannel': winner_take_all_kchannel,
     'winner_take_all_lifetime': winner_take_all_lifetime,
     'axis_softmax': axis_softmax,
     'UpConv2D': UpConv2D,
@@ -532,5 +558,6 @@ layers = {
     'CategoricalMasking': CategoricalMasking,
     'SaltAndPepper': SaltAndPepper,
     'ZeroMasking': ZeroMasking,
+    'Dropout': Dropout,
     'ReverseColorChannel': ReverseColorChannel,
 }

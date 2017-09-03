@@ -183,7 +183,6 @@ def rnn(params, input_shape, output_shape):
     check_model_shape_or_exception(model, output_shape)
     return model
 
-
 builders = {
     'convolutional_bottleneck': convolutional_bottleneck,
     'convolutional_rnn_autoencoder': convolutional_rnn_autoencoder,

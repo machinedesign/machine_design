@@ -35,6 +35,7 @@ from .model_builders import builders as model_builders_autoencoder
 from ..interface import default_config
 
 from ..layers import CategoricalNoise
+from ..layers import SaltAndPepper
 from ..layers import WordDropout
 
 logging.basicConfig(level=logging.INFO)
@@ -101,6 +102,16 @@ def _apply_noise(name, params, X, rng=np.random):
         # e.g [0.7, 0.1, 0.3, 0.9] becomes [0.7, 0, 0, 0.9]
         noise_pr = params['proba']
         X = (rng.uniform(size=X.shape) <= (1 - noise_pr)) * X
+        X = floatX(X)
+        return X
+    elif name == 'salt_and_pepper':
+        proba = params['proba']
+        pred = _get_predict(
+            SaltAndPepper(proba=proba),
+            X.shape[1:],
+            learning_phase=1
+        )
+        X = pred(X)
         X = floatX(X)
         return X
     elif name == 'gaussian':
@@ -329,7 +340,7 @@ def _get_input_reconstruction_grid(X, X_rec, grid_of_images=grid_of_images_defau
 def _get_predict(layer, input_shape, learning_phase=0):
     inp = Input(input_shape)
     y = layer(inp)
-    model = Model(input=inp, output=y)
+    model = Model(inputs=inp, outputs=y)
     func = K.function([model.layers[0].input, K.learning_phase()], [model.layers[1].output])
 
     def apply_func(x):
